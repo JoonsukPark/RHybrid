@@ -63,10 +63,12 @@ HybridPowerTtest <- R6Class(
       colnames(power_df) <- 'n'
       power_df$power <- powers
       return(power_df)
-    },
+    }
+  ),
 
+  private = list(
     hybrid_power = function(n) {
-      es <- self$draw_prior()
+      es <- private$draw_prior()
       return(
         power.t.test(
           n = n,

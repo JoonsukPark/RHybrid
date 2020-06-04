@@ -100,23 +100,6 @@ HybridPower <- R6Class(
       cat('Level of significance: ', self$alpha, '\n')
     },
 
-    draw_prior = function() {
-      if (self$prior == 'normal') {
-        return(
-          rnorm(self$n_prior, self$prior_mu, self$prior_sd)
-        )
-      }
-      else if (self$prior == 'uniform') {
-        return(
-          runif(self$n_prior, self$prior_lower, self$prior_upper)
-        )
-      }
-    },
-
-    classical_power = function(n) {},
-
-    hybrid_power = function(n) {},
-
     plot_power = function() {
       p <- ggplot(self$hybrid_powers, aes(x=factor(n), y=power)) + geom_boxplot()
       p <- p + xlab('Sample Size') + ylab('Power') + ggtitle('Distributions of Power')
@@ -124,13 +107,6 @@ HybridPower <- R6Class(
       p
     },
 
-    melt_powers = function(power_list) {
-      powers <- data.frame(power_list)
-      colnames(powers) = self$ns
-      return(
-        melt(powers, variable.name='n', value.name = 'power')
-      )
-    },
 
     extract_hybrid_power = function() {
       tryCatch(
@@ -146,17 +122,17 @@ HybridPower <- R6Class(
       if (self$parallel) {
         library(parallel)
         if (!(cores)) cores <- detectCores()
-        self$hybrid_powers <- self$melt_powers(
-          mclapply(self$ns, self$hybrid_power)
+        self$hybrid_powers <- private$melt_powers(
+          mclapply(self$ns, private$hybrid_power)
         )
         invisible(self)
       }
       else {
         res <- list()
         for (i in 1:length(self$ns)) {
-          res[[i]] <- self$hybrid_power(self$ns[i])
+          res[[i]] <- private$hybrid_power(self$ns[i])
         }
-        self$hybrid_powers <- self$melt_powers(res)
+        self$hybrid_powers <- private$melt_powers(res)
         invisible(self)
       }
     },
@@ -169,6 +145,30 @@ HybridPower <- R6Class(
         assurances = summarise(group_by(self$hybrid_powers, n), assurance = mean(power))
         return(as.data.frame(assurances))
       }
+    }
+  ),
+
+  private = list(
+    classical_power = function(n) {},
+    hybrid_power = function(n) {},
+    draw_prior = function() {
+      if (self$prior == 'normal') {
+        return(
+          rnorm(self$n_prior, self$prior_mu, self$prior_sd)
+        )
+      }
+      else if (self$prior == 'uniform') {
+        return(
+          runif(self$n_prior, self$prior_lower, self$prior_upper)
+        )
+      }
+    },
+    melt_powers = function(power_list) {
+      powers <- data.frame(power_list)
+      colnames(powers) = self$ns
+      return(
+        melt(powers, variable.name='n', value.name = 'power')
+      )
     }
   )
 )

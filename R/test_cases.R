@@ -13,6 +13,9 @@ x <- HybridPowerTtest$new(
   prior_upper = 0.2
 )
 
-x$assurance()
 x$generate_hybrid_power()
 x$generate_hybrid_power()$plot_power()
+x$hybrid_powers
+x$assurance()
+x$hybrid_powers
+x$classical_power()
