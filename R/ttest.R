@@ -1,5 +1,6 @@
-setwd('~/HybridPower')
-source('HybridPower.R')
+source('R/HybridPower.R')
+library(reshape2)
+library(dplyr)
 
 HybridPowerTtest <- R6Class(
   'HybridPowerTtest',
@@ -7,8 +8,7 @@ HybridPowerTtest <- R6Class(
   public = list(
     es = NULL,
     design = NULL,
-    hybrid_powers = NULL,
-    
+
     initialize = function(
       parallel = FALSE,
       ns=c(),
@@ -38,46 +38,35 @@ HybridPowerTtest <- R6Class(
       )
       self$design <- design
     },
-    
+
     print = function() {
       super$print()
       cat('Test type: t-test\n')
       cat('Study design: ', self$design, '\n')
     },
-    
-    classical_power = function(n) {
+
+    classical_power = function() {
       delta <- ifelse(
         self$prior == 'normal',
         self$prior_mu,
         (self$prior_lower + self$prior_upper)/2
       )
-      return(
-        power.t.test(
-          n = n,
-          delta = delta,
-          sig.level = self$alpha,
-          alt = self$alt,
-          type = self$design,
-          power=NULL
-        )$power
-      )
-    },
-    
-    draw_prior_es = function() {
-      if (self$prior == 'normal') {
-        return(
-          rnorm(self$n_prior, self$prior_mu, self$prior_sd)
-        )
-      }
-      else if (self$prior == 'uniform') {
-        return(
-          runif(self$n_prior, self$prior_lower, self$prior_upper)
-        )
-      }
+      powers <- power.t.test(
+        n = self$ns,
+        delta = delta,
+        sig.level = self$alpha,
+        alt = self$alt,
+        type = self$design,
+        power=NULL
+      )$power
+      power_df <- data.frame(self$ns)
+      colnames(power_df) <- 'n'
+      power_df$power <- powers
+      return(power_df)
     },
 
     hybrid_power = function(n) {
-      es <- self$draw_prior_es()
+      es <- self$draw_prior()
       return(
         power.t.test(
           n = n,
@@ -88,27 +77,7 @@ HybridPowerTtest <- R6Class(
           power = NULL
         )$power
       )
-    },
-    
-    assurance = function(n) {
-      return(
-        mean(self$hybrid_power(n))
-      )
-    },
-    
-    generate_hybrid_power = function(cores=NULL) {
-      if (self$parallel) {
-        library(parallel)
-        if (!(cores)) cores <- detectCores()
-        return(mclapply(self$ns, self$hybrid_power))
-      }
-      else {
-        res <- list()
-        for (i in 1:length(self$ns)) {
-          res[[i]] <- self$hybrid_power(self$ns[i])
-        }
-        return(res)
-      }
     }
   )
 )
+
