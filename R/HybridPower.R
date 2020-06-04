@@ -16,6 +16,7 @@ HybridPower <- R6Class(
     prior_lower=NULL,
     prior_upper=NULL,
     powers = c(),
+    hybrid_powers = NULL,
 
     initialize = function(
       parallel = FALSE,
@@ -116,8 +117,8 @@ HybridPower <- R6Class(
 
     hybrid_power = function(n) {},
 
-    plot_power = function(power_df) {
-      p <- ggplot(power_df, aes(x=factor(n), y=power)) + geom_boxplot()
+    plot_power = function() {
+      p <- ggplot(self$hybrid_powers, aes(x=factor(n), y=power)) + geom_boxplot()
       p <- p + xlab('Sample Size') + ylab('Power') + ggtitle('Distributions of Power')
       p <- p + stat_summary(fun=mean, geom="point", shape=5, size=4)
       p
@@ -139,32 +140,35 @@ HybridPower <- R6Class(
           stop('Run generate_hybrid_power() first!')
         }
       )
-    }
-  ),
+    },
 
-  active = list(
-    hybrid_powers = function(cores=NULL) {
+    generate_hybrid_power = function(cores=NULL) {
       if (self$parallel) {
         library(parallel)
         if (!(cores)) cores <- detectCores()
-        return(
-          self$melt_powers(
-            mclapply(self$ns, self$hybrid_power)
-          )
+        self$hybrid_powers <- self$melt_powers(
+          mclapply(self$ns, self$hybrid_power)
         )
+        invisible(self)
       }
       else {
         res <- list()
         for (i in 1:length(self$ns)) {
           res[[i]] <- self$hybrid_power(self$ns[i])
         }
-        return(self$melt_powers(res))
+        self$hybrid_powers <- self$melt_powers(res)
+        invisible(self)
       }
     },
 
     assurance = function() {
-      assurances = summarise(group_by(x$hybrid_powers, n), assurance = mean(power))
-      return(as.data.frame(assurances))
+      if (is.null(self$hybrid_powers)) {
+        stop('No power values to compute. Run self.generate_hybrid_power() first!')
+      }
+      else {
+        assurances = summarise(group_by(self$hybrid_powers, n), assurance = mean(power))
+        return(as.data.frame(assurances))
+      }
     }
   )
 )
