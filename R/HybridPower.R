@@ -119,7 +119,7 @@ HybridPower <- R6Class(
     plot_power = function(power_df) {
       p <- ggplot(power_df, aes(x=factor(n), y=power)) + geom_boxplot()
       p <- p + xlab('Sample Size') + ylab('Power') + ggtitle('Distributions of Power')
-      p <- p + stat_summary(fun.y=mean, geom="point", shape=5, size=4)
+      p <- p + stat_summary(fun=mean, geom="point", shape=5, size=4)
       p
     },
 
