@@ -49,6 +49,8 @@ HybridPowerOnewayANOVA <- R6Class(
             stop('Specify more than 2 groups\' prior means')
           if (length(prior_sd) == 1)
             stop('Specify more than 2 groups\' prior means')
+          if (prior_sd <= 0)
+            stop('Prior standard deviations must be strictly positive')
           if (length(prior_mu) != length(prior_sd))
             stop('Lengths of prior means and sds should be identical')
       }
@@ -60,7 +62,7 @@ HybridPowerOnewayANOVA <- R6Class(
         if (length(prior_lower) != length(prior_upper))
           stop('Lengths of prior lower and upper bounds should be identical')
       }
-      if (rho > 1 | rho < 0)
+      if (rho >= 1 | rho < 0)
         stop('rho should be between 0 and 1!')
       if (epsilon > 1 | epsilon < 0)
         stop('epsilon should be between 0 and 1!')
@@ -91,7 +93,7 @@ HybridPowerOnewayANOVA <- R6Class(
         cat('Prior lower bounds: ', self$prior_lower, '\n')
         cat('Prior upper bounds: ', self$prior_upper, '\n\n')
       }
-      cat('Test type: ANOVA\n')
+      cat('Test type: One-way ANOVA\n')
       cat('Study design: ', self$design, '\n')
       if (self$design == 'fe')
         cat('Fixed effects One-way ANOVA')
