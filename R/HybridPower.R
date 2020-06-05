@@ -4,6 +4,8 @@ library(ggplot2)
 HybridPower <- R6Class(
   'HybridPower',
   public = list(
+    es = NULL,
+    design = NULL,
     parallel = FALSE,
     ns = c(),
     n_prior = NULL,
@@ -11,12 +13,12 @@ HybridPower <- R6Class(
     prior = NULL,
     alpha = NULL,
     alt = NULL,
-    prior_mu=NULL,
-    prior_sd=NULL,
-    prior_lower=NULL,
-    prior_upper=NULL,
     powers = c(),
     hybrid_powers = NULL,
+    prior_mu = NULL,
+    prior_sd = NULL,
+    prior_lower = NULL,
+    prior_upper = NULL,
 
     initialize = function(
       parallel = FALSE,
@@ -25,11 +27,7 @@ HybridPower <- R6Class(
       n_MC = 1,
       prior = 'normal',
       alpha = 0.05,
-      alt = 'two.sided',
-      prior_mu=NULL,
-      prior_sd=NULL,
-      prior_lower=NULL,
-      prior_upper=NULL
+      alt = 'two.sided'
     ) {
       # Validate inputs
       if (length(ns) == 0) stop('Input sample sizes!')
@@ -71,14 +69,6 @@ HybridPower <- R6Class(
       self$prior <- prior
       self$alpha <- alpha
       self$alt <- alt
-      if (prior == 'normal') {
-        self$prior_mu <- prior_mu
-        self$prior_sd <- prior_sd
-      }
-      else if (prior == 'uniform') {
-        self$prior_lower <- prior_lower
-        self$prior_upper <- prior_upper
-      }
     },
 
     print = function(){
@@ -88,87 +78,8 @@ HybridPower <- R6Class(
       cat('Draws from prior: ', self$n_prior, '\n')
       cat('# Monte Carlo simulations: ', self$n_MC, '\n\n')
       cat('Type of prior: ', self$prior, '\n')
-      if (self$prior == 'normal') {
-        cat('Prior mean: ', self$prior_mu, '\n')
-        cat('Prior sd: ', self$prior_sd, '\n\n')
-      }
-      else if (self$prior == 'uniform') {
-        cat('Prior lower bound: ', self$prior_lower, '\n')
-        cat('Prior upper bound: ', self$prior_upper, '\n\n')
-      }
       cat('Alternative Hypothesis: ', self$alt, '\n')
       cat('Level of significance: ', self$alpha, '\n')
-    },
-
-    plot_power = function() {
-      p <- ggplot(self$hybrid_powers, aes(x=factor(n), y=power)) + geom_boxplot()
-      p <- p + xlab('Sample Size') + ylab('Power') + ggtitle('Distributions of Power')
-      p <- p + stat_summary(fun=mean, geom="point", shape=5, size=4)
-      p
-    },
-
-
-    extract_hybrid_power = function() {
-      tryCatch(
-        {
-          return(self$hybrid_powers)
-        }, error = function(e) {
-          stop('Run generate_hybrid_power() first!')
-        }
-      )
-    },
-
-    generate_hybrid_power = function(cores=NULL) {
-      if (self$parallel) {
-        library(parallel)
-        if (!(cores)) cores <- detectCores()
-        self$hybrid_powers <- private$melt_powers(
-          mclapply(self$ns, private$hybrid_power)
-        )
-        invisible(self)
-      }
-      else {
-        res <- list()
-        for (i in 1:length(self$ns)) {
-          res[[i]] <- private$hybrid_power(self$ns[i])
-        }
-        self$hybrid_powers <- private$melt_powers(res)
-        invisible(self)
-      }
-    },
-
-    assurance = function() {
-      if (is.null(self$hybrid_powers)) {
-        stop('No power values to compute. Run self.generate_hybrid_power() first!')
-      }
-      else {
-        assurances = summarise(group_by(self$hybrid_powers, n), assurance = mean(power))
-        return(as.data.frame(assurances))
-      }
-    }
-  ),
-
-  private = list(
-    classical_power = function(n) {},
-    hybrid_power = function(n) {},
-    draw_prior = function() {
-      if (self$prior == 'normal') {
-        return(
-          rnorm(self$n_prior, self$prior_mu, self$prior_sd)
-        )
-      }
-      else if (self$prior == 'uniform') {
-        return(
-          runif(self$n_prior, self$prior_lower, self$prior_upper)
-        )
-      }
-    },
-    melt_powers = function(power_list) {
-      powers <- data.frame(power_list)
-      colnames(powers) = self$ns
-      return(
-        melt(powers, variable.name='n', value.name = 'power')
-      )
     }
   )
 )
