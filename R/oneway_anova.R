@@ -49,7 +49,7 @@ HybridPowerOnewayANOVA <- R6Class(
             stop('Specify more than 2 groups\' prior means')
           if (length(prior_sd) == 1)
             stop('Specify more than 2 groups\' prior means')
-          if (prior_sd <= 0)
+          if (sum(prior_sd <= 0) > 0)
             stop('Prior standard deviations must be strictly positive')
           if (length(prior_mu) != length(prior_sd))
             stop('Lengths of prior means and sds should be identical')
@@ -237,17 +237,17 @@ HybridPowerOnewayANOVA <- R6Class(
   )
 )
 
-# x <- HybridPowerOnewayANOVA$new(
-#   ns = seq(10, 90, 10),
-#   n_prior=1000,
-#   prior_mu = c(2, 2.2),
-#   prior_sd = c(0.5, 0.5),
-#   sd = 1,
-#   rho = 0.1,
-#   design='rm'
-# )
-#
-# x$classical_power()
-# x$generate_hybrid_power()
-# x$assurances()
-# x$plot_power(x$generate_hybrid_power())
+x <- HybridPowerOnewayANOVA$new(
+  ns = seq(10, 90, 10),
+  n_prior=1000,
+  prior_mu = c(2, 2.2),
+  prior_sd = c(0.5, 0.5),
+  sd = 1,
+  rho = 0.1,
+  design='rm'
+)
+
+x$classical_power()
+x$generate_hybrid_power()
+x$assurances()
+x$plot_power(x$generate_hybrid_power())
