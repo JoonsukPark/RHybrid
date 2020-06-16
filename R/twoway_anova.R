@@ -1,4 +1,4 @@
-setwd('~/HybridPower')
+setwd('~/RHybrid/R')
 source('HybridPower.R')
 
 library(dplyr)

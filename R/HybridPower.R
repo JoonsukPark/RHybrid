@@ -1,6 +1,8 @@
 library(R6)
 library(ggplot2)
 
+is_numeric <- function(x) return(is.numeric(x) & length(x) == 1)
+
 HybridPower <- R6Class(
   'HybridPower',
   public = list(
@@ -47,16 +49,6 @@ HybridPower <- R6Class(
         !(prior %in% c('normal', 'uniform', 'beta', 'truncnorm'))
       )
         stop('Invalid prior!')
-      if (prior == 'normal') {
-        if (!is.numeric(prior_sd) | prior_sd <= 0) {
-          stop('Prior standard deviation should be positive')
-        }
-      }
-      if (prior == 'uniform') {
-        if (!is.numeric(prior_lower) | !is.numeric(prior_upper) | prior_lower > prior_upper) {
-          stop('Lower bound cannot be greater than upper bound')
-        }
-      }
       if (alpha <= 0 | alpha >= 1)
         stop('Alpha should be between 0 and 1.')
       if (alt != 'one.sided' & alt != 'two.sided')
