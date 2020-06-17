@@ -340,7 +340,7 @@ HybridPowerProp <- R6Class(
   )
 )
 
-x2 <- HybridPowerProp$new(
+x <- HybridPowerProp$new(
   ns = seq(10, 90, 10),
   n_prior=10,
   prior = 'truncnorm',
@@ -350,7 +350,7 @@ x2 <- HybridPowerProp$new(
   alt = 'two.sided'
 )
 
-# x2$classical_power(n=200, pi_1 = 0.6)
-# x2$generate_hybrid_power()
-# x2$assurances()
-# x2$plot_power(x2$generate_hybrid_power())
+# x$classical_power(n=200, pi_1 = 0.6)
+# x$generate_hybrid_power()
+# x$assurances()
+# x$plot_power(x2$generate_hybrid_power())

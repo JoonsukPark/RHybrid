@@ -46,7 +46,7 @@ HybridPower <- R6Class(
       if (
         !is.character(prior) |
         length(prior) != 1 |
-        !(prior %in% c('normal', 'uniform', 'beta', 'truncnorm'))
+        !(prior %in% c('normal', 'uniform', 'beta', 'truncnorm', 'dirichlet'))
       )
         stop('Invalid prior!')
       if (alpha <= 0 | alpha >= 1)
