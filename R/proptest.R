@@ -169,7 +169,7 @@ HybridPowerProp <- R6Class(
       }
       else if (self$prior == 'truncnorm') {
         cat('Prior mean (p_1): ', self$prior_pi_1_mu, '\n')
-        cat('Prior sd (p_2): ', self$prior_pi_1_sd, '\n')
+        cat('Prior sd (p_1): ', self$prior_pi_1_sd, '\n')
         cat('Prior mean (p_2): ', self$prior_pi_2_mu, '\n')
         cat('Prior sd (p_2): ', self$prior_pi_2_sd, '\n')
       }
