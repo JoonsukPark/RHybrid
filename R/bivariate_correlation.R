@@ -1,17 +1,16 @@
 source('HybridPower.R')
 
-library(dplyr)
-library(reshape2)
-
 HybridPowerCorrelation <- R6Class(
   'HybridPowerCorrelation',
   inherit = HybridPower,
   public = list(
     hybrid_powers = NULL,
+    prior = NULL,
     prior_a = NULL,
     prior_b = NULL,
     prior_mu = NULL,
     prior_sd = NULL,
+    rho = NULL,
 
     initialize = function(
       parallel = FALSE,
@@ -20,11 +19,12 @@ HybridPowerCorrelation <- R6Class(
       n_MC=1,
       alpha = 0.05,
       alt = 'one.sided',
-      prior = 'beta',
+      prior = NULL,
       prior_a = NULL,
       prior_b = NULL,
       prior_mu = NULL,
-      prior_sd = NULL
+      prior_sd = NULL,
+      rho = NULL
     ) {
       super$initialize(
         parallel = parallel,
@@ -43,7 +43,7 @@ HybridPowerCorrelation <- R6Class(
         self$prior_a <- prior_a
         self$prior_b <- prior_b
       }
-      else {
+      else if (prior == 'normal' | prior == 'truncnorm') {
         if (is.null(prior_mu) | is.null(prior_sd))
           stop('Provide prior_mu and prior_sd first')
         if (prior_sd <= 0)
@@ -53,29 +53,32 @@ HybridPowerCorrelation <- R6Class(
         self$prior_mu <- prior_mu
         self$prior_sd <- prior_sd
       }
+      if (!(is.null(rho))) {
+        if (!(is.numeric(rho)))
+          stop('rho must be numeric')
+        if (rho > 1 | rho < 0)
+          stop('rho must be between 0 and 1')
+        self$rho <- rho
+      }
     },
 
     print = function() {
       super$print()
       cat('Test type: Bivariate normal correlation coefficient\n')
-      if (self$prior == 'beta') {
-        cat('Prior_a: ', self$prior_a, '\n')
-        cat('Prior_b: ', self$prior_b, '\n')
-      }
-      else {
-        cat('Prior_mu: ', self$prior_mu, '\n')
-        cat('Prior_sd: ', self$prior_sd, '\n')
+      cat('Population correlation coefficient: ', self$rho, '\n')
+      if (!(is.null(self$prior))) {
+        if (self$prior == 'beta') {
+          cat('Prior_a: ', self$prior_a, '\n')
+          cat('Prior_b: ', self$prior_b, '\n')
+        }
+        else if (self$prior == 'normal') {
+          cat('Prior_mu: ', self$prior_mu, '\n')
+          cat('Prior_sd: ', self$prior_sd, '\n')
+        }
       }
     },
 
-    classical_power = function(rho=NULL, n=self$ns) {
-      if (is.null(rho)) {
-        if (self$prior == 'beta')
-          rho <- self$prior_a / (self$prior_a + self$prior_b)
-        else
-          rho <- self$prior_mu
-      }
-
+    classical_power = function(rho=self$rho, n=self$ns) {
       if (self$alt == 'one.sided')
         rho = abs(rho)
       crit_t <- ifelse(
@@ -101,41 +104,28 @@ HybridPowerCorrelation <- R6Class(
 
     generate_hybrid_power = function(cores=NULL) {
       if (self$parallel) {
-        library(parallel)
-        if (is.null(cores)) cores <- detectCores()
+        if (is.null(cores)) cores <- parallel::detectCores()
         return(
           private$gather_powers(
-            mclapply(
-              self$ns, private$hybrid_power
-            )
+            parallel::mclapply(self$ns, private$hybrid_power)
           )
         )
       }
-      else {
-        return(
-          private$gather_powers(
-            lapply(
-              self$ns, private$hybrid_power
-            )
-          )
-        )
-      }
+      else
+        return(private$gather_powers(lapply(self$ns, private$hybrid_power)))
     },
 
     assurances = function(cores=NULL) {
       if (self$parallel) {
-        library(parallel)
-        if (is.null(cores)) cores <- detectCores()
+        if (is.null(cores)) cores <- parallel::detectCores()
         return(
           private$gather_assurances(
-            mclapply(self$ns, private$assurance)
+            parallel::mclapply(self$ns, private$assurance)
           )
         )
       }
       else {
-        private$gather_assurances(
-          lapply(self$ns, private$assurance)
-        )
+        private$gather_assurances(lapply(self$ns, private$assurance))
       }
     },
 
@@ -149,7 +139,6 @@ HybridPowerCorrelation <- R6Class(
   ),
 
   private = list(
-
     draw_prior_es = function() {
       if (self$prior == 'beta') {
         return(
@@ -196,9 +185,7 @@ HybridPowerCorrelation <- R6Class(
     },
 
     assurance = function(n) {
-      return(
-        mean(private$hybrid_power(n=n))
-      )
+      return(mean(private$hybrid_power(n=n)))
     }
   )
 )
@@ -207,12 +194,14 @@ z <- HybridPowerCorrelation$new(
   parallel = F,
   ns = seq(10, 90, 10),
   n_prior=1000,
+  rho = .5,
   prior_mu = .3,
   prior_sd = .1,
   prior = 'truncnorm',
   alt = 'two.sided'
 )
 
+z$classical_power()
 powers <- z$generate_hybrid_power()
 z$plot_power(powers)
 z$assurances()

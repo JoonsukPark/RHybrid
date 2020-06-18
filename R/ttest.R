@@ -46,12 +46,21 @@ HybridPowerTtest <- R6Class(
           stop('Cohen\'s d must be a single number!')
       }
       self$d <- d
+
       if (!(is.null(prior))) {
         if (prior == 'normal') {
+          if (!(is.numeric(prior_mu)) | !(is.numeric(prior_sd)))
+            stop('prior parameters must be numeric')
+          if (prior_sd <= 0)
+            stop('prior_sd must be positive')
           self$prior_mu <- prior_mu
           self$prior_sd <- prior_sd
         }
         else if (prior == 'uniform') {
+          if (!(is.numeric(prior_lower)) | !(is.numeric(prior_upper)))
+            stop('prior parameters must be numeric')
+          if (prior_lower > prior_upper)
+            stop('The lower bound cannot be greater than the upper bound')
           self$prior_lower <- prior_lower
           self$prior_upper <- prior_upper
         }
@@ -73,6 +82,7 @@ HybridPowerTtest <- R6Class(
         }
       }
       cat('Test type: t-test\n')
+      cat('Effect size type: Cohen\'s d')
       cat('Study design: ', self$design, '\n')
     },
 
@@ -151,6 +161,8 @@ HybridPowerTtest <- R6Class(
           runif(self$n_prior, self$prior_lower, self$prior_upper)
         )
       }
+      else
+        stop('Invalid prior type')
     },
 
     hybrid_power = function(n) {
@@ -174,9 +186,7 @@ HybridPowerTtest <- R6Class(
     },
 
     assurance = function(n) {
-      return(
-        mean(private$hybrid_power(n))
-      )
+      return(mean(private$hybrid_power(n)))
     }
   )
 )

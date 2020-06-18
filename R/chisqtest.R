@@ -6,6 +6,7 @@ HybridPowerChisqTest <- R6Class(
   inherit = HybridPower,
   public = list(
     p_0 = NULL,
+    p_1 = NULL,
     hybrid_powers = NULL,
     prior_mu = NULL,
     prior_sd = NULL,
@@ -21,7 +22,8 @@ HybridPowerChisqTest <- R6Class(
       n_MC=1,
       prior='beta',
       alpha = 0.05,
-      p_0 = c(0.5, 0.5),
+      p_0 = NULL,
+      p_1 = NULL,
       alt = 'two.sided',
       prior_mu = NULL,
       prior_sd = NULL,
@@ -45,8 +47,19 @@ HybridPowerChisqTest <- R6Class(
         if (!(is.numeric(p_0[i])))
           stop('Elements of p_0 must be numeric')
       }
+      if (!(is.null(p_1))) {
+        if (sum(p_1) != 1)
+          stop('p_1 must sum to 1')
+        if (length(p_0) != length(p_1))
+          stop('p_0 and p_1 should have same lengths')
+        for (i in 1:length(p_1)) {
+          if (!(is.numeric(p_1[i])))
+            stop('Elements of p_1 must be numeric')
+        }
+      }
       self$p_0 <- p_0
-      
+      self$p_1 <- p_1
+
       if (length(prior_alpha) > 1) {
         if (prior != 'dirichlet')
           stop('The prior type must be dirichlet for (# cells) > 2')
@@ -114,26 +127,29 @@ HybridPowerChisqTest <- R6Class(
 
     print = function() {
       super$print()
-      if (self$prior == 'dirichlet') {
-        cat('Prior alpha: ', self$prior_alpha, '\n')
+      cat('Proportions under H_0: ', self$p_0, '\n')
+      cat('Proportions under H_1: ', self$p_1, '\n\n')
+      if (!(is.null(self$prior))) {
+        if (self$prior == 'dirichlet') {
+          cat('Prior alpha: ', self$prior_alpha, '\n')
+        }
+        else if (self$prior == 'beta') {
+          cat('Prior alpha: ', self$prior_alpha, '\n')
+          cat('Prior beta: ', self$prior_beta, '\n\n')
+        }
+        else if (self$prior == 'normal') {
+          cat('Prior mean: ', self$prior_mu, '\n')
+          cat('Prior sd: ', self$prior_sd, '\n\n')
+        }
+        else if (self$prior == 'uniform') {
+          cat('Prior lower bound: ', self$prior_lower, '\n')
+          cat('Prior upper bound: ', self$prior_upper, '\n\n')
+        }
       }
-      else if (self$prior == 'beta') {
-        cat('Prior alpha: ', self$prior_alpha, '\n')
-        cat('Prior beta: ', self$prior_beta, '\n\n')
-      }
-      else if (self$prior == 'normal') {
-        cat('Prior mean: ', self$prior_mu, '\n')
-        cat('Prior sd: ', self$prior_sd, '\n\n')
-      }
-      else if (self$prior == 'uniform') {
-        cat('Prior lower bound: ', self$prior_lower, '\n')
-        cat('Prior upper bound: ', self$prior_upper, '\n\n')
-      }
-      cat('Proportions under H_0: ', self$p_0, '\n\n')
       cat('Test type: Chi^2\n')
     },
 
-    classical_power = function(n, p) {
+    classical_power = function(n=self$ns, p=self$p_1) {
       return(
         1 - pchisq(qchisq(1-self$alpha, df=length(p)-1), df=length(p)-1, ncp=sum((p - self$p_0)^2/self$p_0)*n)
       )
@@ -200,14 +216,14 @@ HybridPowerChisqTest <- R6Class(
         return(es)
       }
     },
-    
+
     hybrid_power = function(n) {
-      es <- private$draw_prior_es()
+      ps <- private$draw_prior_es()
       return(
-        apply(es, 1, FUN=self$classical_power, n=n)
+        apply(ps, 1, FUN=self$classical_power, n=n)
       )
     },
-    
+
     melt_powers = function(power_list) {
       powers <- data.frame(power_list)
       colnames(powers) = self$ns
@@ -226,31 +242,32 @@ HybridPowerChisqTest <- R6Class(
   )
 )
 
-# x <- HybridPowerChisqTest$new(
-#   prior='dirichlet',
-#   parallel = T,
-#   ns = seq(10, 90, 10),
-#   n_prior=1000,
-#   prior_alpha = c(1, 1, 1),
-#   p_0 = c(1/3, 1/3, 1/3)
-# )
-# 
-# x$classical_power(n=90, c(1/4, 1/4, 1/2))
-# x$generate_hybrid_power()
-# x$assurances()
-# x$plot_power(x$generate_hybrid_power())
-# 
-# x2 <- HybridPowerChisqTest$new(
-#   prior='beta',
-#   parallel = T,
-#   ns = seq(10, 90, 10),
-#   n_prior=1000,
-#   prior_alpha = 1,
-#   prior_beta = 2,
-#   p_0 = c(1/3, 2/3)
-# )
-# 
-# x2$classical_power(n=90, c(1/3, 3/4))
-# x2$generate_hybrid_power()
-# x2$assurances()
-# x2$plot_power(x$generate_hybrid_power())
+x <- HybridPowerChisqTest$new(
+  prior='dirichlet',
+  parallel = T,
+  ns = seq(10, 90, 10),
+  n_prior=1000,
+  prior_alpha = c(1, 1, 1),
+  p_0 = c(1/3, 1/3, 1/3),
+  p_1 = c(1/4, 1/4, 1/2)
+)
+
+x$classical_power()
+x$generate_hybrid_power()
+x$assurances()
+x$plot_power(x$generate_hybrid_power())
+
+x2 <- HybridPowerChisqTest$new(
+  prior='beta',
+  parallel = T,
+  ns = seq(10, 90, 10),
+  n_prior=1000,
+  prior_alpha = 1,
+  prior_beta = 2,
+  p_0 = c(1/3, 2/3)
+)
+
+x2$classical_power(n=90, c(1/3, 3/4))
+x2$generate_hybrid_power()
+x2$assurances()
+x2$plot_power(x$generate_hybrid_power())

@@ -10,6 +10,8 @@ HybridPowerProp <- R6Class(
     n_MC = NULL,
     exact=FALSE,
 
+    pi_1 = NULL,
+    pi_2 = NULL,
     c = NULL,
 
     prior_pi_1_alpha = NULL,
@@ -39,6 +41,9 @@ HybridPowerProp <- R6Class(
       c = NULL,
       exact=FALSE,
 
+      pi_1 = NULL,
+      pi_2 = NULL,
+
       prior_pi_1_alpha = NULL,
       prior_pi_1_beta = NULL,
       prior_pi_2_alpha = NULL,
@@ -65,6 +70,21 @@ HybridPowerProp <- R6Class(
       )
       self$design <- design
       self$n_MC <- n_MC
+
+      if (!(is.null(pi_1))) {
+        if (!(is.numeric(pi_1)))
+          stop('pi_1 is not numeric')
+        if (pi_1 > 1 | pi_1 < 0)
+          stop('Invalid value of pi_1')
+        self$pi_1 <- pi_1
+      }
+      if (!(is.null(pi_2))) {
+        if (!(is.numeric(pi_2)))
+          stop('pi_2 is not numeric')
+        if (pi_2 > 1 | pi_2 < 0)
+          stop('Invalid value of pi_2')
+        self$pi_2 <- pi_2
+      }
       if (prior == 'beta') {
         if (!(is_numeric(prior_pi_1_alpha) &
              is_numeric(prior_pi_1_beta) &
@@ -124,16 +144,20 @@ HybridPowerProp <- R6Class(
       }
       if (!(is.logical(exact)))
         stop('\'Exact\' must be logical')
-      self$exact <- exact
       if (!(is.null(c))) {
         if (c >= 1 | c <= 0)
           stop('c should be between 0 and 1')
       }
       self$c <- c
+      self$exact <- exact
     },
 
     print = function() {
       super$print()
+      if (!(is.null(self$pi_1)))
+        cat('Population proportion 1: ', self$pi_1, '\n')
+      if (!(is.null(self$pi_2)))
+        cat('Population proportion 2: ', self$pi_2, '\n')
       if (self$prior == 'beta') {
         cat('Alpha (p_1): ', self$prior_pi_1_alpha, '\n')
         cat('Beta (p_1): ', self$prior_pi_1_beta, '\n')
@@ -152,13 +176,12 @@ HybridPowerProp <- R6Class(
         cat('Prior mean (p_2): ', self$prior_pi_2_mu, '\n')
         cat('Prior sd (p_2): ', self$prior_pi_2_sd, '\n')
       }
-      cat('p_1: ',self$p_1, '\n')
-      cat('p_2: ',self$p_2, '\n')
-      cat('c: ',self$c, '\n')
+      if (!(is.null(self$c)))
+        cat('Population proportion under the null: ',self$c, '\n')
       cat('Study design: ', self$design, '\n')
     },
 
-    classical_power = function(n, pi_1, pi_2 = NULL, exact=FALSE) {
+    classical_power = function(n=self$ns, pi_1=self$pi_1, pi_2 = self$pi_2, exact=FALSE) {
       if (is.null(pi_2)) {
         sd_0 <- sqrt(self$c*(1-self$c)/n)
         mu_1 <- (pi_1 - self$c)
@@ -192,7 +215,7 @@ HybridPowerProp <- R6Class(
         else if (self$exact & pi_2){
           if ((length(pi_1) != 1) | (length(pi_1) != 1))
             stop('Invalid pi_1 or pi_2 for a Fisher\'s exact test!')
-          mean(sapply(1:self$n_MC, private$sim_exact_test, n=n, pi_1=pi_1, pi_2=pi_2))
+          return(sapply(n, private$sim_exact_test, n_MC = self$n_MC, pi_1=pi_1, pi_2=pi_2))
         }
       }
     },
@@ -302,22 +325,73 @@ HybridPowerProp <- R6Class(
       }
     },
 
-    sim_exact_test = function(i, n, pi_1, pi_2) {
-      x <- rbinom(1, n, pi_1)
-      y <- rbinom(1, n, pi_2)
+    is_significant = function(n, x) {
       return(
         fisher.test(
-          x=matrix(c(x, n-x, y, n-y), ncol=2),
+          x=matrix(c(x[1], n-x[1], x[2], n-x[2]), ncol=2),
           alt=self$alt,
-          conf.level = 1-self$alpha
+          conf.level = 1-self$alpha,
+          simulate.p.value = FALSE
         )$p.value < self$alpha
       )
     },
 
+    sim_exact_test = function(n, n_MC, pi_1, pi_2) {
+      x <- cbind(rbinom(n_MC, n, pi_1), rbinom(n_MC, n, pi_2))
+      return(
+        mean(apply(x, 1, private$is_significant, n=n))
+      )
+    },
+
+    classical_power2 = function(pi, n=self$ns, exact=FALSE) {
+      pi_1 = pi[1]
+      pi_2 = pi[2]
+      if (is.null(pi_2)) {
+        sd_0 <- sqrt(self$c*(1-self$c)/n)
+        mu_1 <- (pi_1 - self$c)
+        sd_1 <- sqrt(pi_1*(1-pi_1)/n)
+        if (self$alt == 'two.sided') {
+          crit_lower <- qnorm(self$alpha/2, 0, sd_0)
+          crit_upper <- qnorm(1-self$alpha/2, 0, sd_0)
+          return(pnorm(crit_lower, mu_1, sd_1) + 1 - pnorm(crit_upper, mu_1, sd_1))
+        }
+        else if (self$alt == 'less') {
+          crit <- qnorm(self$alpha/2)
+          return(pnorm(crit, mu_es, sd_es))
+        }
+        else {
+          crit <- qnorm(1-self$alpha/2)
+          return(1 - pnorm(crit, mu_es, sd_es))
+        }
+      }
+      else {
+        if (!(self$exact) & pi_2) {
+          return(
+            power.prop.test(
+              n=n,
+              p1=pi_1,
+              p2=pi_2,
+              sig.level=self$alpha,
+              alt = self$alt
+            )$power
+          )
+        }
+        else if (self$exact & pi_2){
+          if ((length(pi_1) != 1) | (length(pi_1) != 1))
+            stop('Invalid pi_1 or pi_2 for a Fisher\'s exact test!')
+          return(sapply(n, private$sim_exact_test, n_MC = self$n_MC, pi_1=pi_1, pi_2=pi_2))
+        }
+      }
+    },
+
     hybrid_power = function(n) {
       es <- private$draw_prior_es()
-      if (is.null(dim(es))) return(self$classical_power(n, pi_1=es, pi_2=NULL))
-      else return(self$classical_power(n, pi_1=es[,1], pi_2=es[,2]))
+      if (is.null(dim(es))) return(self$classical_power(n, pi_1=es, pi_2=NULL, exact=self$exact))
+      else {
+        return(
+          apply(es, 1, private$classical_power2, n=n, exact=self$exact)
+        )
+      }
     },
 
     melt_powers = function(power_list) {
@@ -339,18 +413,25 @@ HybridPowerProp <- R6Class(
 )
 
 x <- HybridPowerProp$new(
-  ns = seq(10, 90, 10),
+  parallel=T,
+  ns = seq(30, 90, 10),
   n_prior=100,
   prior = 'truncnorm',
   prior_pi_1_mu = .6,
   prior_pi_1_sd = .1,
+  prior_pi_2_mu = .5,
+  prior_pi_2_sd = .1,
   c = 0.5,
-  n_MC = 1000,
+  n_MC = 100,
   alt = 'two.sided',
-  exact=T
+  exact=T,
+  pi_1 = 0.5,
+  pi_2 = 0.7
 )
 
-x$classical_power(n=200, pi_1 = 0.6, pi_2=0.5)
+x$classical_power()
+begin <- Sys.time()
 x$generate_hybrid_power()
+print(round(Sys.time()-begin, 2))
 x$assurances()
 x$plot_power(x$generate_hybrid_power())
