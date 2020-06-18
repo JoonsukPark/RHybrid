@@ -27,7 +27,7 @@ HybridPower <- R6Class(
       ns = c(),
       n_prior = 1,
       n_MC = 1,
-      prior = 'normal',
+      prior = NULL,
       alpha = 0.05,
       alt = 'two.sided'
     ) {
@@ -43,12 +43,14 @@ HybridPower <- R6Class(
         stop('Invalid # draws from prior!')
       if (n_MC %% 1 != 0 | n_MC <= 0)
         stop('Invalid # Monte Carlo simulations!')
-      if (
-        !is.character(prior) |
-        length(prior) != 1 |
-        !(prior %in% c('normal', 'uniform', 'beta', 'truncnorm', 'dirichlet'))
-      )
-        stop('Invalid prior!')
+      if (!(is.null(prior))) {
+        if (
+          !is.character(prior) |
+          length(prior) != 1 |
+          !(prior %in% c('normal', 'uniform', 'beta', 'truncnorm', 'dirichlet'))
+        )
+          stop('Invalid prior!')
+      }
       if (alpha <= 0 | alpha >= 1)
         stop('Alpha should be between 0 and 1.')
       if (alt != 'one.sided' & alt != 'two.sided')

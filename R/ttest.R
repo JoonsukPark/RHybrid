@@ -8,6 +8,7 @@ HybridPowerTtest <- R6Class(
     es = NULL,
     design = NULL,
     hybrid_powers = NULL,
+    d = NULL,
     prior_mu = NULL,
     prior_sd = NULL,
     prior_lower = NULL,
@@ -18,9 +19,10 @@ HybridPowerTtest <- R6Class(
       ns=c(),
       n_prior=1,
       n_MC=1,
-      prior='normal',
+      prior=NULL,
       alpha = 0.05,
       alt = 'two.sided',
+      d = NULL,
       prior_mu = NULL,
       prior_sd = NULL,
       prior_lower = NULL,
@@ -37,64 +39,80 @@ HybridPowerTtest <- R6Class(
         alt
       )
       self$design <- design
-      if (prior == 'normal') {
-        self$prior_mu <- prior_mu
-        self$prior_sd <- prior_sd
+      if (!(is.null(d))) {
+        if (!(is.numeric(d)))
+          stop('Input effect size should be numeric')
+        if (length(d) != 1)
+          stop('Cohen\'s d must be a single number!')
       }
-      else if (prior == 'uniform') {
-        self$prior_lower <- prior_lower
-        self$prior_upper <- prior_upper
+      self$d <- d
+      if (!(is.null(prior))) {
+        if (prior == 'normal') {
+          self$prior_mu <- prior_mu
+          self$prior_sd <- prior_sd
+        }
+        else if (prior == 'uniform') {
+          self$prior_lower <- prior_lower
+          self$prior_upper <- prior_upper
+        }
       }
     },
 
     print = function() {
       super$print()
-      if (self$prior == 'normal') {
-        cat('Prior mean: ', self$prior_mu, '\n')
-        cat('Prior sd: ', self$prior_sd, '\n\n')
-      }
-      else if (self$prior == 'uniform') {
-        cat('Prior lower bound: ', self$prior_lower, '\n')
-        cat('Prior upper bound: ', self$prior_upper, '\n\n')
+      if (!(is.null(self$d)))
+        cat('Cohen\'s d: ', self$d, '\n')
+      if (!(is.null(prior))) {
+        if (self$prior == 'normal') {
+          cat('Prior mean: ', self$prior_mu, '\n')
+          cat('Prior sd: ', self$prior_sd, '\n\n')
+        }
+        else if (self$prior == 'uniform') {
+          cat('Prior lower bound: ', self$prior_lower, '\n')
+          cat('Prior upper bound: ', self$prior_upper, '\n\n')
+        }
       }
       cat('Test type: t-test\n')
       cat('Study design: ', self$design, '\n')
     },
 
-    classical_power = function() {
-      delta <- ifelse(
-        self$prior == 'normal',
-        self$prior_mu,
-        (self$prior_lower + self$prior_upper)/2
-      )
-      return(
-        power.t.test(
-          n = self$ns,
-          delta = delta,
-          sig.level = self$alpha,
-          alt = self$alt,
-          type = self$design,
-          power=NULL
-        )$power
-      )
+    classical_power = function(d = self$d, n = self$ns) {
+      if (is.null(d))
+        stop('Input effect size not provided!')
+      else {
+        return(
+          power.t.test(
+            n = n,
+            delta = d,
+            sig.level = self$alpha,
+            alt = self$alt,
+            type = self$design,
+            power=NULL
+          )$power
+        )
+      }
     },
 
     generate_hybrid_power = function(cores=NULL) {
-      if (self$parallel) {
-        library(parallel)
-        if (!(cores)) cores <- detectCores()
-        return(
-          private$melt_powers(
-            mclapply(self$ns, private$hybrid_power)
-          )
-        )
-      }
+      if (is.null(self$prior))
+        stop('Specify a prior first')
       else {
-        res <- list()
-        for (i in 1:length(self$ns)) {
-          res[[i]] <- private$hybrid_power(self$ns[i])
+        if (self$parallel) {
+          library(parallel)
+          if (!(cores)) cores <- detectCores()
+          return(
+            private$melt_powers(
+              mclapply(self$ns, private$hybrid_power)
+            )
+          )
         }
-        return(private$melt_powers(res))
+        else {
+          res <- list()
+          for (i in 1:length(self$ns)) {
+            res[[i]] <- private$hybrid_power(self$ns[i])
+          }
+          return(private$melt_powers(res))
+        }
       }
     },
 
@@ -122,7 +140,6 @@ HybridPowerTtest <- R6Class(
   ),
 
   private = list(
-
     draw_prior_es = function() {
       if (self$prior == 'normal') {
         return(
@@ -137,16 +154,12 @@ HybridPowerTtest <- R6Class(
     },
 
     hybrid_power = function(n) {
-      es <- private$draw_prior_es()
       return(
-        power.t.test(
-          n = n,
-          delta = es,
-          sig.level = self$alpha,
-          alt = self$alt,
-          type = self$design,
-          power = NULL
-        )$power
+        sapply(
+          private$draw_prior_es(),
+          FUN=self$classical_power,
+          n=n
+        )
       )
     },
 
@@ -155,7 +168,7 @@ HybridPowerTtest <- R6Class(
       colnames(powers) = self$ns
       return(
         suppressMessages(
-          melt(powers, variable.name='n', value.name = 'power')
+          reshape2::melt(powers, variable.name='n', value.name = 'power')
         )
       )
     },
@@ -168,15 +181,39 @@ HybridPowerTtest <- R6Class(
   )
 )
 
-# x <- HybridPowerTtest$new(
-#   ns = seq(10, 90, 10),
-#   n_prior=1000,
-#   prior_mu = 0.3,
-#   prior_sd = 0.1
-# )
-#
-# x$classical_power()
-# x$generate_hybrid_power()
-# x$assurances()
-# x$plot_power(x$generate_hybrid_power())
-#
+power_classical <- HybridPowerTtest$new(
+  ns = seq(10, 90, 10),
+  d = 0.5
+)
+power_classical$classical_power()
+
+power_hybrid <- HybridPowerTtest$new(
+  ns = seq(10, 90, 10),
+  n_prior=1000,
+  prior = 'normal',
+  prior_mu = 0.3,
+  prior_sd = 0.1
+)
+
+# This should generate an error
+power_hybrid$classical_power()
+
+power_hybrid$generate_hybrid_power()
+power_hybrid$assurances()
+powers <- power_hybrid$generate_hybrid_power()
+power_hybrid$plot_power(powers)
+
+power_both <- HybridPowerTtest$new(
+  d = 0.5,
+  ns = seq(10, 90, 10),
+  n_prior=1000,
+  prior = 'normal',
+  prior_mu = 0.3,
+  prior_sd = 0.1
+)
+
+power_both$classical_power()
+power_both$generate_hybrid_power()
+power_both$assurances()
+powers <- power_both$generate_hybrid_power()
+power_both$plot_power(powers)

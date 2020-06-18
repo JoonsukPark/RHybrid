@@ -7,6 +7,7 @@ HybridPowerOnewayANOVA <- R6Class(
   'HybridPowerOnewayANOVA',
   inherit = HybridPower,
   public = list(
+    mu = NULL,
     es = NULL,
     hybrid_powers = NULL,
     sd = 1,
@@ -20,8 +21,9 @@ HybridPowerOnewayANOVA <- R6Class(
       ns=c(),
       n_prior=1,
       n_MC=1,
-      prior='normal',
+      prior=NULL,
       alpha = 0.05,
+      mu = NULL,
       prior_mu = c(),
       prior_sd = c(),
       prior_lower = c(),
@@ -41,27 +43,9 @@ HybridPowerOnewayANOVA <- R6Class(
         alpha,
         alt
       )
-
+      self$mu <- mu
       if (!(design %in% c('fe', 'rm')))
         stop('Design should be one of \'fe\' or \'rm\'!')
-      if (self$prior == 'normal') {
-          if (length(prior_mu) == 1)
-            stop('Specify more than 2 groups\' prior means')
-          if (length(prior_sd) == 1)
-            stop('Specify more than 2 groups\' prior means')
-          if (sum(prior_sd <= 0) > 0)
-            stop('Prior standard deviations must be strictly positive')
-          if (length(prior_mu) != length(prior_sd))
-            stop('Lengths of prior means and sds should be identical')
-      }
-      else if (prior == 'uniform') {
-        if (length(prior_lower) == 1)
-          stop('Specify more than 2 groups\' prior means')
-        if (length(prior_upper) == 1)
-          stop('Specify more than 2 groups\' prior means')
-        if (length(prior_lower) != length(prior_upper))
-          stop('Lengths of prior lower and upper bounds should be identical')
-      }
       if (rho >= 1 | rho < 0)
         stop('rho should be between 0 and 1!')
       if (epsilon > 1 | epsilon < 0)
@@ -71,16 +55,38 @@ HybridPowerOnewayANOVA <- R6Class(
       self$rho <- rho
       self$sd <- sd
       self$epsilon <- epsilon
-      if (prior == 'normal') {
-        self$prior_mu <- prior_mu
-        self$prior_sd <- prior_sd
-        self$k <- length(prior_mu)
+      self$prior <- prior
+
+      if (!(is.null(prior))) {
+        if (prior == 'normal') {
+          if (length(prior_mu) == 1)
+            stop('Specify more than 2 groups\' prior means')
+          if (sum(prior_sd <= 0) > 0)
+            stop('Prior standard deviations must be strictly positive')
+          if (length(prior_mu) == 1 | (length(prior_mu) > 1 & length(prior_sd) > 1)) {
+            if (length(prior_mu) != length(prior_sd))
+              stop('Lengths of prior means and sds should be identical')
+          }
+          else
+            prior_sd <- rep(prior_sd, length(prior_mu))
+          self$prior_mu <- prior_mu
+          self$prior_sd <- prior_sd
+          self$k <- length(prior_mu)
+        }
+        else if (prior == 'uniform') {
+          if (length(prior_lower) == 1)
+            stop('Specify more than 2 groups\' prior means')
+          if (length(prior_upper) == 1)
+            stop('Specify more than 2 groups\' prior means')
+          if (length(prior_lower) != length(prior_upper))
+            stop('Lengths of prior lower and upper bounds should be identical')
+          self$prior_lower <- prior_lower
+          self$prior_upper <- prior_upper
+          self$k <- length(prior_lower)
+        }
       }
-      else if (prior == 'uniform') {
-        self$prior_lower <- prior_lower
-        self$prior_upper <- prior_upper
-        self$k <- length(prior_lower)
-      }
+      else
+        self$k <- length(mu)
     },
 
     print = function() {
@@ -101,24 +107,24 @@ HybridPowerOnewayANOVA <- R6Class(
         cat('Repeated measure One-way ANOVA')
     },
 
-    classical_power = function() {
-
-      if (self$prior == 'normal')
-        f <- private$compute_f(self$prior_mu)
-      else
-        f <- private$compute_f((self$prior_lower + self$prior_upper)/2)
-      if (self$design == 'fe') {
-        ncp <- f^2*self$ns
-        df1 <- self$k-1
-        df2 <- self$ns - self$k
-      }
+    classical_power = function(mu = self$mu, n=self$ns) {
+      if (is.null(mu))
+        stop('Input effect size is null')
       else {
-        u <- self$k / (1-self$rho)
-        ncp <- f^2*self$ns*u
-        df1 <- (self$k-1)*self$epsilon
-        df2 <- (self$ns-1)*(self$k-1)*self$epsilon
+        f <- private$compute_f(mu)
+        if (self$design == 'fe') {
+          ncp <- f^2*n
+          df1 <- self$k-1
+          df2 <- n - self$k
+        }
+        else {
+          u <- self$k / (1-self$rho)
+          ncp <- f^2*n*u
+          df1 <- (self$k-1)*self$epsilon
+          df2 <- (n-1)*(self$k-1)*self$epsilon
+        }
+        return(private$compute_f_prob(f, ncp, df1, df2))
       }
-      return(private$compute_f_prob(f, ncp, df1, df2))
     },
 
     generate_hybrid_power = function(cores=NULL) {
@@ -161,11 +167,9 @@ HybridPowerOnewayANOVA <- R6Class(
   ),
 
   private = list(
-
     compute_f = function(means) {
-        return(sqrt(var(means)*(self$k-1)/self$k)/self$sd)
+      return(sqrt(var(means)*(self$k-1)/self$k)/self$sd)
     },
-
     compute_f_prob = function(f, ncp, df1, df2) {
       crit <- qf(
         1-self$alpha,
@@ -181,7 +185,6 @@ HybridPowerOnewayANOVA <- R6Class(
         )
       )
     },
-
     draw_prior_es = function() {
       means <- vector()
       if (self$prior == 'normal') {
@@ -200,25 +203,18 @@ HybridPowerOnewayANOVA <- R6Class(
           )
         }
       }
-      return(apply(means, 1, private$compute_f))
+      return(means)
     },
-
     hybrid_power = function(n) {
-      f <- private$draw_prior_es()
-      if (self$design == 'fe') {
-        ncp <- f^2*n
-        df1 <- self$k-1
-        df2 <- n - self$k
-      }
-      else {
-        u <- self$k / (1-self$rho)
-        ncp <- f^2*n*u
-        df1 <- (self$k-1)*self$epsilon
-        df2 <- (n-1)*(self$k-1)*self$epsilon
-      }
-      return(private$compute_f_prob(f, ncp, df1, df2))
+      return(
+        apply(
+          private$draw_prior_es(),
+          1,
+          FUN=self$classical_power,
+          n=n
+        )
+      )
     },
-
     melt_powers = function(power_list) {
       powers <- data.frame(power_list)
       colnames(powers) = self$ns
@@ -228,7 +224,6 @@ HybridPowerOnewayANOVA <- R6Class(
         )
       )
     },
-
     assurance = function(n) {
       return(
         mean(private$hybrid_power(n))
@@ -237,17 +232,46 @@ HybridPowerOnewayANOVA <- R6Class(
   )
 )
 
-x <- HybridPowerOnewayANOVA$new(
+power_classical <- HybridPowerOnewayANOVA$new(
   ns = seq(10, 90, 10),
-  n_prior=1000,
-  prior_mu = c(2, 2.2),
-  prior_sd = c(0.5, 0.5),
+  mu = c(2, 2.2),
   sd = 1,
-  rho = 0.1,
-  design='rm'
+  design='fe'
 )
+power_classical$classical_power()
 
-x$classical_power()
-x$generate_hybrid_power()
-x$assurances()
-x$plot_power(x$generate_hybrid_power())
+power_hybrid <- HybridPowerOnewayANOVA$new(
+  ns = seq(10, 90, 10),
+  prior_mu = c(2, 2.2),
+  prior_sd = c(.3, .1),
+  sd = 1,
+  design='fe',
+  prior = 'normal',
+  n_prior = 1000
+)
+power_hybrid$prior
+
+# This should generate an error
+power_hybrid$classical_power()
+
+power_hybrid$generate_hybrid_power()
+power_hybrid$assurances()
+powers <- power_hybrid$generate_hybrid_power()
+power_hybrid$plot_power(powers)
+
+power_both <- HybridPowerOnewayANOVA$new(
+  ns = seq(10, 90, 10),
+  mu = c(2, 2.2),
+  prior_mu = c(2, 2.2),
+  prior_sd = c(.3, .1),
+  sd = 1,
+  design='fe',
+  prior = 'normal',
+  n_prior = 1000
+)
+power_both$prior
+power_both$classical_power()
+power_both$generate_hybrid_power()
+power_both$assurances()
+powers <- power_both$generate_hybrid_power()
+power_both$plot_power(powers)
