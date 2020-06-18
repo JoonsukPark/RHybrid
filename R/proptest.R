@@ -7,9 +7,9 @@ HybridPowerProp <- R6Class(
   public = list(
     hybrid_powers = NULL,
     design = NULL,
+    n_MC = NULL,
+    exact=FALSE,
 
-    pi_1 = NULL,
-    pi_2 = NULL,
     c = NULL,
 
     prior_pi_1_alpha = NULL,
@@ -36,9 +36,8 @@ HybridPowerProp <- R6Class(
       alpha = 0.05,
       alt = 'two.sided',
       design = 'one.sample',
-      pi_1 = NULL,
-      pi_2 = NULL,
       c = NULL,
+      exact=FALSE,
 
       prior_pi_1_alpha = NULL,
       prior_pi_1_beta = NULL,
@@ -65,6 +64,7 @@ HybridPowerProp <- R6Class(
         alt
       )
       self$design <- design
+      self$n_MC <- n_MC
       if (prior == 'beta') {
         if (!(is_numeric(prior_pi_1_alpha) &
              is_numeric(prior_pi_1_beta) &
@@ -122,34 +122,13 @@ HybridPowerProp <- R6Class(
         self$prior_pi_2_mu <- prior_pi_2_mu
         self$prior_pi_2_sd <- prior_pi_2_sd
       }
-      if (!(is.null(pi_1))) {
-        if (length(pi_1) == 1) {
-          if (!(is.numeric(pi_1) | pi_1 < 0 | pi_1 > 1))
-            stop('pi_1 is not a valid input')
-        }
-        else {
-          stop('pi_1 should be a constant')
-        }
-        if (!(is.null(pi_2))) {
-          if (length(pi_1) == 1) {
-            if (!(is.numeric(pi_1) | pi_1 < 0 | pi_1 > 1))
-              stop('pi_2 is not a valid input')
-          }
-          else {
-            stop('pi_2 should be a constant')
-          }
-        }
-      }
-      else if (is.null(pi_1) & !(is.null(pi_2))) {
-        stop('Single inputs should go into pi_1.')
-      }
+      if (!(is.logical(exact)))
+        stop('\'Exact\' must be logical')
+      self$exact <- exact
       if (!(is.null(c))) {
         if (c >= 1 | c <= 0)
           stop('c should be between 0 and 1')
       }
-
-      self$pi_1 <- pi_1
-      self$pi_2 <- pi_2
       self$c <- c
     },
 
@@ -179,7 +158,7 @@ HybridPowerProp <- R6Class(
       cat('Study design: ', self$design, '\n')
     },
 
-    classical_power = function(n, pi_1, pi_2 = NULL) {
+    classical_power = function(n, pi_1, pi_2 = NULL, exact=FALSE) {
       if (is.null(pi_2)) {
         sd_0 <- sqrt(self$c*(1-self$c)/n)
         mu_1 <- (pi_1 - self$c)
@@ -199,15 +178,22 @@ HybridPowerProp <- R6Class(
         }
       }
       else {
-        return(
-          power.prop.test(
-            n=n,
-            p1=pi_1,
-            p2=pi_2,
-            sig.level=self$alpha,
-            alt = self$alt
-          )$power
-        )
+        if (!(self$exact) & pi_2) {
+          return(
+            power.prop.test(
+              n=n,
+              p1=pi_1,
+              p2=pi_2,
+              sig.level=self$alpha,
+              alt = self$alt
+            )$power
+          )
+        }
+        else if (self$exact & pi_2){
+          if ((length(pi_1) != 1) | (length(pi_1) != 1))
+            stop('Invalid pi_1 or pi_2 for a Fisher\'s exact test!')
+          mean(sapply(1:self$n_MC, private$sim_exact_test, n=n, pi_1=pi_1, pi_2=pi_2))
+        }
       }
     },
 
@@ -316,6 +302,18 @@ HybridPowerProp <- R6Class(
       }
     },
 
+    sim_exact_test = function(i, n, pi_1, pi_2) {
+      x <- rbinom(1, n, pi_1)
+      y <- rbinom(1, n, pi_2)
+      return(
+        fisher.test(
+          x=matrix(c(x, n-x, y, n-y), ncol=2),
+          alt=self$alt,
+          conf.level = 1-self$alpha
+        )$p.value < self$alpha
+      )
+    },
+
     hybrid_power = function(n) {
       es <- private$draw_prior_es()
       if (is.null(dim(es))) return(self$classical_power(n, pi_1=es, pi_2=NULL))
@@ -342,15 +340,17 @@ HybridPowerProp <- R6Class(
 
 x <- HybridPowerProp$new(
   ns = seq(10, 90, 10),
-  n_prior=10,
+  n_prior=100,
   prior = 'truncnorm',
   prior_pi_1_mu = .6,
   prior_pi_1_sd = .1,
   c = 0.5,
-  alt = 'two.sided'
+  n_MC = 1000,
+  alt = 'two.sided',
+  exact=T
 )
 
-# x$classical_power(n=200, pi_1 = 0.6)
-# x$generate_hybrid_power()
-# x$assurances()
-# x$plot_power(x2$generate_hybrid_power())
+x$classical_power(n=200, pi_1 = 0.6, pi_2=0.5)
+x$generate_hybrid_power()
+x$assurances()
+x$plot_power(x$generate_hybrid_power())
