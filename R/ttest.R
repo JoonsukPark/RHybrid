@@ -267,3 +267,14 @@ power_hybrid$boxplot()
 power_hybrid$assurance()
 power_hybrid$assurance_level()
 
+# Also you can change the internal variables whenever you want
+power_hybrid$alpha <- 0.05
+
+power_hybrid$classical_power()
+power_hybrid$hybrid_power()
+power_hybrid$output
+power_hybrid$assurance()
+power_hybrid$boxplot()
+power_hybrid$assurance()
+power_hybrid$assurance_level()
+
