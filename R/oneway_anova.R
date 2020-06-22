@@ -1,7 +1,4 @@
-setwd('~/RHybrid/R')
-source('HybridPower.R')
-
-library(reshape2)
+source('R/HybridPower.R')
 
 HybridPowerOnewayANOVA <- R6Class(
   'HybridPowerOnewayANOVA',
@@ -25,25 +22,27 @@ HybridPowerOnewayANOVA <- R6Class(
       alpha = 0.05,
       mu = NULL,
       prior_mu = c(),
-      prior_sd = c(),
+      prior_sigma = c(),
       prior_lower = c(),
       prior_upper = c(),
       sd = 1,
       design = 'fe',
       rho = 0,
       epsilon = 1,
-      alt = 'one.sided'
+      alt = 'one.sided',
+      assurance_props = c(0.5)
     ) {
       super$initialize(
         parallel = FALSE,
-        ns,
-        n_prior,
-        n_MC,
-        prior,
-        alpha,
-        alt
+        ns=ns,
+        n_prior=n_prior,
+        n_MC=n_MC,
+        prior=prior,
+        alpha=alpha,
+        alt=alt,
+        assurance_props=assurance_props
       )
-      self$mu <- mu
+
       if (!(design %in% c('fe', 'rm')))
         stop('Design should be one of \'fe\' or \'rm\'!')
       if (rho >= 1 | rho < 0)
@@ -51,26 +50,26 @@ HybridPowerOnewayANOVA <- R6Class(
       if (epsilon > 1 | epsilon < 0)
         stop('epsilon should be between 0 and 1!')
 
+      self$mu <- mu
       self$design <- design
       self$rho <- rho
       self$sd <- sd
       self$epsilon <- epsilon
-      self$prior <- prior
 
       if (!(is.null(prior))) {
         if (prior == 'normal') {
           if (length(prior_mu) == 1)
             stop('Specify more than 2 groups\' prior means')
-          if (sum(prior_sd <= 0) > 0)
-            stop('Prior standard deviations must be strictly positive')
-          if (length(prior_mu) == 1 | (length(prior_mu) > 1 & length(prior_sd) > 1)) {
-            if (length(prior_mu) != length(prior_sd))
+          if (sum(prior_sigma < 0) > 0)
+            stop('Prior standard deviations must be nonnegative')
+          if (length(prior_mu) == 1 | (length(prior_mu) > 1 & length(prior_sigma) > 1)) {
+            if (length(prior_mu) != length(prior_sigma))
               stop('Lengths of prior means and sds should be identical')
           }
           else
-            prior_sd <- rep(prior_sd, length(prior_mu))
+            prior_sigma <- rep(prior_sigma, length(prior_mu))
           self$prior_mu <- prior_mu
-          self$prior_sd <- prior_sd
+          self$prior_sigma <- prior_sigma
           self$k <- length(prior_mu)
         }
         else if (prior == 'uniform') {
@@ -91,9 +90,10 @@ HybridPowerOnewayANOVA <- R6Class(
 
     print = function() {
       super$print()
+      cat('Fixed means for classical power analysis: ', self$mu, '\n')
       if (self$prior == 'normal') {
         cat('Prior means: ', self$prior_mu, '\n')
-        cat('Prior sds: ', self$prior_sd, '\n\n')
+        cat('Prior sds: ', self$prior_sigma, '\n\n')
       }
       else if (self$prior == 'uniform') {
         cat('Prior lower bounds: ', self$prior_lower, '\n')
@@ -107,59 +107,72 @@ HybridPowerOnewayANOVA <- R6Class(
         cat('Repeated measure One-way ANOVA')
     },
 
-    classical_power = function(mu = self$mu, n=self$ns) {
+    classical_power = function(mu = self$mu, n=self$ns, f2=NULL) {
       if (is.null(mu))
         stop('Input effect size is null')
       else {
-        f <- private$compute_f(mu)
+        if (is.null(f2))
+          f2 <- private$compute_f(mu)^2
         if (self$design == 'fe') {
-          ncp <- f^2*n
+          ncp <- f2*n
           df1 <- self$k-1
           df2 <- n - self$k
         }
         else {
           u <- self$k / (1-self$rho)
-          ncp <- f^2*n*u
+          ncp <- f2*n*u
           df1 <- (self$k-1)*self$epsilon
           df2 <- (n-1)*(self$k-1)*self$epsilon
         }
-        return(private$compute_f_prob(f, ncp, df1, df2))
+        return(private$compute_f_prob(f2, ncp, df1, df2))
       }
     },
 
-    generate_hybrid_power = function(cores=NULL) {
+    hybrid_power = function(cores=NULL) {
       if (self$parallel) {
         library(parallel)
         if (!(cores)) cores <- detectCores()
-        return(
-          private$melt_powers(mclapply(self$ns, private$hybrid_power)))
+        self$output <- private$melt_powers(mclapply(self$ns, private$generate_hybrid_power))
+        return(self$output)
       }
       else {
         res <- list()
         for (i in 1:length(self$ns)) {
-          res[[i]] <- private$hybrid_power(self$ns[i])
+          res[[i]] <- private$generate_hybrid_power(self$ns[i])
         }
-        return(private$melt_powers(res))
+        self$output <- private$melt_powers(res)
+        return(self$output)
       }
     },
 
-    assurances = function(cores=NULL) {
-      if (self$parallel) {
-        library(parallel)
-        if (!(cores)) cores <- detectCores()
-        return(mclapply(self$ns, private$assurance))
-      }
-      else {
-        res <- list()
-        for (i in 1:length(self$ns)) {
-          res[[i]] <- private$assurance(self$ns[i])
-        }
-        return(res)
-      }
+    assurance = function() {
+      if (is.null(self$output))
+        stop('Run hybrid_power() first')
+      return(summarise(group_by(self$output, n), assurance = mean(power), .groups='keep'))
     },
 
-    plot_power = function(power_df) {
-      p <- ggplot(power_df, aes(x=factor(n), y=power)) + geom_boxplot()
+    assurance_level = function(props=self$assurance_props) {
+      if (is.null(self$output))
+        stop('Run hybrid_power() first')
+      if (is.null(props))
+        stop('Provide target proportions')
+      for (i in 1:length(props))
+        if (!(is.numeric(props[i])) | props[i] > 1 | props[i] < 0)
+          stop('Invalid proportion(s)')
+      props <- sort(props)
+      res <- summarise(group_by(self$output, n), quantile(power, probs=props[1]), .groups='keep')
+      if (length(props) > 1) {
+        for (i in 2:length(props)) {
+          res <- left_join(res, summarise(group_by(self$output, n), quantile(power, probs=props[i]), .groups='keep'), by='n')
+        }
+      }
+      col_names <- c('n', props)
+      colnames(res) <- col_names
+      return(res)
+    },
+
+    boxplot = function() {
+      p <- ggplot(self$output, aes(x=factor(n), y=power)) + geom_boxplot()
       p <- p + xlab('Sample Size') + ylab('Power') + ggtitle('Distributions of Power')
       p <- p + stat_summary(fun=mean, geom="point", shape=5, size=4)
       p
@@ -170,6 +183,7 @@ HybridPowerOnewayANOVA <- R6Class(
     compute_f = function(means) {
       return(sqrt(var(means)*(self$k-1)/self$k)/self$sd)
     },
+
     compute_f_prob = function(f, ncp, df1, df2) {
       crit <- qf(
         1-self$alpha,
@@ -185,13 +199,14 @@ HybridPowerOnewayANOVA <- R6Class(
         )
       )
     },
+
     draw_prior_es = function() {
       means <- vector()
       if (self$prior == 'normal') {
         for (i in 1:self$k) {
           means <- cbind(
             means,
-            rnorm(self$n_prior, self$prior_mu[i], self$prior_sd[i])
+            rnorm(self$n_prior, self$prior_mu[i], self$prior_sigma[i])
           )
         }
       }
@@ -205,7 +220,8 @@ HybridPowerOnewayANOVA <- R6Class(
       }
       return(means)
     },
-    hybrid_power = function(n) {
+
+    generate_hybrid_power = function(n) {
       return(
         apply(
           private$draw_prior_es(),
@@ -215,6 +231,7 @@ HybridPowerOnewayANOVA <- R6Class(
         )
       )
     },
+
     melt_powers = function(power_list) {
       powers <- data.frame(power_list)
       colnames(powers) = self$ns
@@ -223,55 +240,6 @@ HybridPowerOnewayANOVA <- R6Class(
           melt(powers, variable.name='n', value.name = 'power')
         )
       )
-    },
-    assurance = function(n) {
-      return(
-        mean(private$hybrid_power(n))
-      )
     }
   )
 )
-
-power_classical <- HybridPowerOnewayANOVA$new(
-  ns = seq(10, 90, 10),
-  mu = c(2, 2.2),
-  sd = 1,
-  design='fe'
-)
-power_classical$classical_power()
-
-power_hybrid <- HybridPowerOnewayANOVA$new(
-  ns = seq(10, 90, 10),
-  prior_mu = c(2, 2.2),
-  prior_sd = c(.3, .1),
-  sd = 1,
-  design='fe',
-  prior = 'normal',
-  n_prior = 1000
-)
-power_hybrid$prior
-
-# This should generate an error
-power_hybrid$classical_power()
-
-power_hybrid$generate_hybrid_power()
-power_hybrid$assurances()
-powers <- power_hybrid$generate_hybrid_power()
-power_hybrid$plot_power(powers)
-
-power_both <- HybridPowerOnewayANOVA$new(
-  ns = seq(10, 90, 10),
-  mu = c(2, 2.2),
-  prior_mu = c(2, 2.2),
-  prior_sd = c(.3, .1),
-  sd = 1,
-  design='fe',
-  prior = 'normal',
-  n_prior = 1000
-)
-power_both$prior
-power_both$classical_power()
-power_both$generate_hybrid_power()
-power_both$assurances()
-powers <- power_both$generate_hybrid_power()
-power_both$plot_power(powers)

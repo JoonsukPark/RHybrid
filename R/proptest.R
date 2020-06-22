@@ -1,5 +1,4 @@
-setwd('~/RHybrid/R')
-source('HybridPower.R')
+source('R/HybridPower.R')
 
 HybridPowerProp <- R6Class(
   'HybridPowerProp',
@@ -412,26 +411,26 @@ HybridPowerProp <- R6Class(
   )
 )
 
-x <- HybridPowerProp$new(
-  parallel=T,
-  ns = seq(30, 90, 10),
-  n_prior=100,
-  prior = 'truncnorm',
-  prior_pi_1_mu = .6,
-  prior_pi_1_sd = .1,
-  prior_pi_2_mu = .5,
-  prior_pi_2_sd = .1,
-  c = 0.5,
-  n_MC = 100,
-  alt = 'two.sided',
-  exact=T,
-  pi_1 = 0.5,
-  pi_2 = 0.7
-)
-
-x$classical_power()
-begin <- Sys.time()
-x$generate_hybrid_power()
-print(round(Sys.time()-begin, 2))
-x$assurances()
-x$plot_power(x$generate_hybrid_power())
+# x <- HybridPowerProp$new(
+#   parallel=T,
+#   ns = seq(30, 90, 10),
+#   n_prior=100,
+#   prior = 'truncnorm',
+#   prior_pi_1_mu = .6,
+#   prior_pi_1_sd = .1,
+#   prior_pi_2_mu = .5,
+#   prior_pi_2_sd = .1,
+#   c = 0.5,
+#   n_MC = 100,
+#   alt = 'two.sided',
+#   exact=T,
+#   pi_1 = 0.5,
+#   pi_2 = 0.7
+# )
+#
+# x$classical_power()
+# begin <- Sys.time()
+# x$generate_hybrid_power()
+# print(round(Sys.time()-begin, 2))
+# x$assurances()
+# x$plot_power(x$generate_hybrid_power())

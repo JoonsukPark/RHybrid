@@ -1,4 +1,4 @@
-source('HybridPower.R')
+source('R/HybridPower.R')
 
 HybridPowerTtest <- R6Class(
   'HybridPowerTtest',
@@ -44,7 +44,7 @@ HybridPowerTtest <- R6Class(
           stop('Cohen\'s d must be a single number!')
       }
       self$d <- d
-      
+
       if (is.numeric(sd)) {
         if (sd > 0)
           self$sd <- sd
@@ -138,7 +138,7 @@ HybridPowerTtest <- R6Class(
         stop('Run hybrid_power() first')
       return(summarise(group_by(self$output, n), assurance = mean(power), .groups='keep'))
     },
-    
+
     assurance_level = function(props=self$assurance_props) {
       if (is.null(self$output))
         stop('Run hybrid_power() first')
@@ -158,7 +158,7 @@ HybridPowerTtest <- R6Class(
       colnames(res) <- col_names
       return(res)
     },
-    
+
     boxplot = function() {
       if (is.null(self$output))
         stop('Run hybrid_power() first')
@@ -206,75 +206,4 @@ HybridPowerTtest <- R6Class(
     }
   )
 )
-
-##############
-## Examples ##
-##############
-
-# Classical power analysis
-power_classical <- HybridPowerTtest$new(
-  ns = seq(10, 90, 10),
-  d = 0.5,
-  alpha=.01
-)
-power_classical$classical_power()
-
-# B-C hybrid power analysis
-
-# Note that assurance_props is now another input to the initializer (default is 0.5, which is the median)
-# Also note that you can change the significance level (default is still alpha=0.05)
-power_hybrid <- HybridPowerTtest$new(
-  ns = seq(10, 90, 10),
-  n_prior=1000,
-  prior = 'normal',
-  prior_mu = 0.3,
-  prior_sigma = 0.1,
-  alpha=0.1,
-  assurance_props = c(.5, .75)
-)
-
-# This should generate an error because you haven't specified the 'd' here.
-power_hybrid$classical_power()
-
-# Now it will be OK
-power_hybrid <- HybridPowerTtest$new(
-  ns = seq(10, 90, 10),
-  n_prior=1000,
-  prior = 'normal',
-  prior_mu = 0.3,
-  prior_sigma = 0.1,
-  alpha=0.1,
-  assurance_props = c(.5, .75),
-  d = 0.1
-)
-power_hybrid$classical_power()
-
-# This saves the generated hybrid power values at self$output (in this case, power_hybrid$output)
-power_hybrid$hybrid_power()
-
-# You can also do this because hybrid_power() saves the power values as well as returning them as output values
-powers <- power_hybrid$hybrid_power()
-
-# You can retrieve the saved power values like this
-power_hybrid$output
-
-# These must be run after running hybrid_power()
-# because they assume that power values are already saved in self$output
-# Otherwise, they would raise an error.
-
-power_hybrid$assurance()
-power_hybrid$boxplot()
-power_hybrid$assurance()
-power_hybrid$assurance_level()
-
-# Also you can change the internal variables whenever you want
-power_hybrid$alpha <- 0.05
-
-power_hybrid$classical_power()
-power_hybrid$hybrid_power()
-power_hybrid$output
-power_hybrid$assurance()
-power_hybrid$boxplot()
-power_hybrid$assurance()
-power_hybrid$assurance_level()
 

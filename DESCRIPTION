@@ -1,11 +1,16 @@
-Package: RHybrid
+Package: hybridpower
 Type: Package
-Title: What the Package Does (Title Case)
+Title: Bayesian-Classical Hybrid Power analysis
 Version: 0.1.0
-Author: Who wrote it
-Maintainer: The package maintainer <yourself@somewhere.net>
-Description: More about what it does (maybe more than one line)
-    Use four spaces when indenting paragraphs within the Description.
-License: What license is it under?
+Author: Joonsuk Park [aut], Jolynn Pek [aut]
+Maintainer: Joonsuk Park <vergilius85@gmail.com>
+Description: 
+    Computes Bayesian-Classical and classical power values.
+Imports:
+    dplyr,
+    R6,
+    ggplot2,
+    reshape2
+License: GPL-2
 Encoding: UTF-8
 LazyData: true

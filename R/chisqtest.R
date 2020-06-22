@@ -1,5 +1,4 @@
-setwd('~/RHybrid/R')
-source('HybridPower.R')
+source('R/HybridPower.R')
 
 HybridPowerChisqTest <- R6Class(
   'HybridPowerChisqTest',
@@ -242,32 +241,32 @@ HybridPowerChisqTest <- R6Class(
   )
 )
 
-x <- HybridPowerChisqTest$new(
-  prior='dirichlet',
-  parallel = T,
-  ns = seq(10, 90, 10),
-  n_prior=1000,
-  prior_alpha = c(1, 1, 1),
-  p_0 = c(1/3, 1/3, 1/3),
-  p_1 = c(1/4, 1/4, 1/2)
-)
-
-x$classical_power()
-x$generate_hybrid_power()
-x$assurances()
-x$plot_power(x$generate_hybrid_power())
-
-x2 <- HybridPowerChisqTest$new(
-  prior='beta',
-  parallel = T,
-  ns = seq(10, 90, 10),
-  n_prior=1000,
-  prior_alpha = 1,
-  prior_beta = 2,
-  p_0 = c(1/3, 2/3)
-)
-
-x2$classical_power(n=90, c(1/3, 3/4))
-x2$generate_hybrid_power()
-x2$assurances()
-x2$plot_power(x$generate_hybrid_power())
+# x <- HybridPowerChisqTest$new(
+#   prior='dirichlet',
+#   parallel = T,
+#   ns = seq(10, 90, 10),
+#   n_prior=1000,
+#   prior_alpha = c(1, 1, 1),
+#   p_0 = c(1/3, 1/3, 1/3),
+#   p_1 = c(1/4, 1/4, 1/2)
+# )
+#
+# x$classical_power()
+# x$generate_hybrid_power()
+# x$assurances()
+# x$plot_power(x$generate_hybrid_power())
+#
+# x2 <- HybridPowerChisqTest$new(
+#   prior='beta',
+#   parallel = T,
+#   ns = seq(10, 90, 10),
+#   n_prior=1000,
+#   prior_alpha = 1,
+#   prior_beta = 2,
+#   p_0 = c(1/3, 2/3)
+# )
+#
+# x2$classical_power(n=90, c(1/3, 3/4))
+# x2$generate_hybrid_power()
+# x2$assurances()
+# x2$plot_power(x$generate_hybrid_power())

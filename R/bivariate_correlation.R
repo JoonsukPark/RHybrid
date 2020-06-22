@@ -1,4 +1,4 @@
-source('HybridPower.R')
+source('R/HybridPower.R')
 
 HybridPowerCorrelation <- R6Class(
   'HybridPowerCorrelation',
@@ -190,18 +190,18 @@ HybridPowerCorrelation <- R6Class(
   )
 )
 
-z <- HybridPowerCorrelation$new(
-  parallel = F,
-  ns = seq(10, 90, 10),
-  n_prior=1000,
-  rho = .5,
-  prior_mu = .3,
-  prior_sd = .1,
-  prior = 'truncnorm',
-  alt = 'two.sided'
-)
-
-z$classical_power()
-powers <- z$generate_hybrid_power()
-z$plot_power(powers)
-z$assurances()
+# z <- HybridPowerCorrelation$new(
+#   parallel = F,
+#   ns = seq(10, 90, 10),
+#   n_prior=1000,
+#   rho = .5,
+#   prior_mu = .3,
+#   prior_sd = .1,
+#   prior = 'truncnorm',
+#   alt = 'two.sided'
+# )
+#
+# z$classical_power()
+# powers <- z$generate_hybrid_power()
+# z$plot_power(powers)
+# z$assurances()

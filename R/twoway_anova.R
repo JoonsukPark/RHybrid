@@ -1,8 +1,4 @@
-setwd('~/RHybrid/R')
-source('HybridPower.R')
-
-library(dplyr)
-library(reshape2)
+source('R/HybridPower.R')
 
 HybridPowerTwowayANOVA <- R6Class(
   'HybridPowerTwowayANOVA',

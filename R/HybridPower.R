@@ -1,6 +1,7 @@
 library(R6)
 library(ggplot2)
 library(dplyr)
+library(reshape2)
 
 is_numeric <- function(x) return(is.numeric(x) & length(x) == 1)
 
@@ -58,7 +59,7 @@ HybridPower <- R6Class(
         stop('Alpha should be between 0 and 1.')
       if (alt != 'one.sided' & alt != 'two.sided')
         stop('Alternative hypothesis should be either \'one.sided\' or \'two.sided\'!')
-      
+
       if (length(assurance_props) == 1) {
         if (!(is.numeric(assurance_props) & assurance_props <= 1 & assurance_props >= 0))
           stop('Invalid assurance level')

@@ -1,5 +1,4 @@
-setwd('~/RHybrid/R')
-source('HybridPower.R')
+source('R/HybridPower.R')
 
 HybridPowerSignTest <- R6Class(
   'HybridPowerSigntest',
@@ -221,18 +220,17 @@ HybridPowerSignTest <- R6Class(
   )
 )
 
-x <- HybridPowerSignTest$new(
-  prior='uniform',
-  parallel = T,
-  ns = seq(10, 90, 10),
-  n_prior=1000,
-  n_MC = 100,
-  p_0 = 0.5,
-  MC=F
-)
-
-x$classical_power(n=50, p=0.65, p_0=0.5)
-x$generate_hybrid_power()
-x$assurances()
-x$plot_power(x$generate_hybrid_power())
-
+# x <- HybridPowerSignTest$new(
+#   prior='uniform',
+#   parallel = T,
+#   ns = seq(10, 90, 10),
+#   n_prior=1000,
+#   n_MC = 100,
+#   p_0 = 0.5,
+#   MC=F
+# )
+#
+# x$classical_power(n=50, p=0.65, p_0=0.5)
+# x$generate_hybrid_power()
+# x$assurances()
+# x$plot_power(x$generate_hybrid_power())

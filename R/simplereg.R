@@ -1,5 +1,4 @@
-setwd('~/RHybrid/R')
-source('HybridPower.R')
+source('R/HybridPower.R')
 
 HybridPowerSLR <- R6Class(
   'HybridPowerSLR',
@@ -182,16 +181,16 @@ HybridPowerSLR <- R6Class(
   )
 )
 
-x2 <- HybridPowerSLR$new(
-  ns = seq(10, 90, 10),
-  n_prior=1000,
-  prior = 'truncnorm',
-  prior_mu = .2,
-  prior_sd = .2,
-  alt = 'two.sided'
-)
-
-x2$classical_power(n=30, r2=0.3)
-x2$generate_hybrid_power()
-x2$assurances()
-x2$plot_power(x2$generate_hybrid_power())
+# x2 <- HybridPowerSLR$new(
+#   ns = seq(10, 90, 10),
+#   n_prior=1000,
+#   prior = 'truncnorm',
+#   prior_mu = .2,
+#   prior_sd = .2,
+#   alt = 'two.sided'
+# )
+#
+# x2$classical_power(n=30, r2=0.3)
+# x2$generate_hybrid_power()
+# x2$assurances()
+# x2$plot_power(x2$generate_hybrid_power())
