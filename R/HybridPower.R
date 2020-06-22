@@ -1,5 +1,6 @@
 library(R6)
 library(ggplot2)
+library(dplyr)
 
 is_numeric <- function(x) return(is.numeric(x) & length(x) == 1)
 
@@ -15,12 +16,13 @@ HybridPower <- R6Class(
     prior = NULL,
     alpha = NULL,
     alt = NULL,
-    powers = c(),
-    hybrid_powers = NULL,
+    output = NULL,
+    hybrid_output = NULL,
     prior_mu = NULL,
-    prior_sd = NULL,
+    prior_sigma = NULL,
     prior_lower = NULL,
     prior_upper = NULL,
+    assurance_props = NULL,
 
     initialize = function(
       parallel = FALSE,
@@ -29,7 +31,8 @@ HybridPower <- R6Class(
       n_MC = 1,
       prior = NULL,
       alpha = 0.05,
-      alt = 'two.sided'
+      alt = 'two.sided',
+      assurance_props = NULL
     ) {
       # Validate inputs
       if (length(ns) == 0) stop('Input sample sizes!')
@@ -55,6 +58,17 @@ HybridPower <- R6Class(
         stop('Alpha should be between 0 and 1.')
       if (alt != 'one.sided' & alt != 'two.sided')
         stop('Alternative hypothesis should be either \'one.sided\' or \'two.sided\'!')
+      
+      if (length(assurance_props) == 1) {
+        if (!(is.numeric(assurance_props) & assurance_props <= 1 & assurance_props >= 0))
+          stop('Invalid assurance level')
+      }
+      else {
+        for (i in 1:length(assurance_props)) {
+          if (!(is.numeric(assurance_props[i]) & assurance_props[i] <= 1 & assurance_props[i] >= 0))
+            stop('Invalid assurance prop(s)')
+        }
+      }
 
       self$parallel <- parallel
       self$ns <- sort(ns)
@@ -63,6 +77,7 @@ HybridPower <- R6Class(
       self$prior <- prior
       self$alpha <- alpha
       self$alt <- alt
+      self$assurance_props <- assurance_props
     },
 
     print = function(){

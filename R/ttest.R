@@ -1,4 +1,3 @@
-setwd('~/RHybrid/R')
 source('HybridPower.R')
 
 HybridPowerTtest <- R6Class(
@@ -7,12 +6,8 @@ HybridPowerTtest <- R6Class(
   public = list(
     es = NULL,
     design = NULL,
-    hybrid_powers = NULL,
     d = NULL,
-    prior_mu = NULL,
-    prior_sd = NULL,
-    prior_lower = NULL,
-    prior_upper = NULL,
+    sd = 1,
 
     initialize = function(
       parallel = FALSE,
@@ -24,19 +19,22 @@ HybridPowerTtest <- R6Class(
       alt = 'two.sided',
       d = NULL,
       prior_mu = NULL,
-      prior_sd = NULL,
+      prior_sigma = NULL,
       prior_lower = NULL,
       prior_upper = NULL,
-      design = 'one.sample'
+      design = 'one.sample',
+      sd = 1,
+      assurance_props = c(0.5)
     ) {
       super$initialize(
         parallel = FALSE,
-        ns,
-        n_prior,
-        n_MC,
-        prior,
-        alpha,
-        alt
+        ns=ns,
+        n_prior=n_prior,
+        n_MC=n_MC,
+        prior=prior,
+        alpha=alpha,
+        alt=alt,
+        assurance_props=assurance_props
       )
       self$design <- design
       if (!(is.null(d))) {
@@ -46,15 +44,24 @@ HybridPowerTtest <- R6Class(
           stop('Cohen\'s d must be a single number!')
       }
       self$d <- d
+      
+      if (is.numeric(sd)) {
+        if (sd > 0)
+          self$sd <- sd
+      }
+      else
+        stop('Invalid sd')
+      if (!(is.null(prior)) & is.null(sd))
+        stop('sd cannot be null for hybrid power calculation')
 
       if (!(is.null(prior))) {
         if (prior == 'normal') {
-          if (!(is.numeric(prior_mu)) | !(is.numeric(prior_sd)))
+          if (!(is.numeric(prior_mu)) | !(is.numeric(prior_sigma)))
             stop('prior parameters must be numeric')
-          if (prior_sd <= 0)
-            stop('prior_sd must be positive')
+          if (prior_sigma <= 0)
+            stop('prior_sigma must be positive')
           self$prior_mu <- prior_mu
-          self$prior_sd <- prior_sd
+          self$prior_sigma <- prior_sigma
         }
         else if (prior == 'uniform') {
           if (!(is.numeric(prior_lower)) | !(is.numeric(prior_upper)))
@@ -71,10 +78,12 @@ HybridPowerTtest <- R6Class(
       super$print()
       if (!(is.null(self$d)))
         cat('Cohen\'s d: ', self$d, '\n')
+      if (!(is.null(self$sd)))
+        cat('Standard deviation for data: ', self$sd, '\n')
       if (!(is.null(prior))) {
         if (self$prior == 'normal') {
           cat('Prior mean: ', self$prior_mu, '\n')
-          cat('Prior sd: ', self$prior_sd, '\n\n')
+          cat('Prior sigma: ', self$prior_sigma, '\n\n')
         }
         else if (self$prior == 'uniform') {
           cat('Prior lower bound: ', self$prior_lower, '\n')
@@ -82,7 +91,6 @@ HybridPowerTtest <- R6Class(
         }
       }
       cat('Test type: t-test\n')
-      cat('Effect size type: Cohen\'s d')
       cat('Study design: ', self$design, '\n')
     },
 
@@ -103,46 +111,58 @@ HybridPowerTtest <- R6Class(
       }
     },
 
-    generate_hybrid_power = function(cores=NULL) {
+    hybrid_power = function(cores=NULL) {
       if (is.null(self$prior))
         stop('Specify a prior first')
       else {
         if (self$parallel) {
           library(parallel)
           if (!(cores)) cores <- detectCores()
-          return(
-            private$melt_powers(
-              mclapply(self$ns, private$hybrid_power)
-            )
+          self$output <- private$melt_output(
+            mclapply(self$ns, private$generate_hybrid_power)
           )
         }
         else {
           res <- list()
           for (i in 1:length(self$ns)) {
-            res[[i]] <- private$hybrid_power(self$ns[i])
+            res[[i]] <- private$generate_hybrid_power(self$ns[i])
           }
-          return(private$melt_powers(res))
+          self$output <- private$melt_output(res)
         }
+        return(self$output)
       }
     },
 
-    assurances = function(cores=NULL) {
-      if (self$parallel) {
-        library(parallel)
-        if (!(cores)) cores <- detectCores()
-        return(mclapply(self$ns, private$assurance))
-      }
-      else {
-        res <- list()
-        for (i in 1:length(self$ns)) {
-          res[[i]] <- private$assurance(self$ns[i])
-        }
-        return(res)
-      }
+    assurance = function() {
+      if (is.null(self$output))
+        stop('Run hybrid_power() first')
+      return(summarise(group_by(self$output, n), assurance = mean(power), .groups='keep'))
     },
-
-    plot_power = function(power_df) {
-      p <- ggplot(power_df, aes(x=factor(n), y=power)) + geom_boxplot()
+    
+    assurance_level = function(props=self$assurance_props) {
+      if (is.null(self$output))
+        stop('Run hybrid_power() first')
+      if (is.null(props))
+        stop('Provide target proportions')
+      for (i in 1:length(props))
+        if (!(is.numeric(props[i])) | props[i] > 1 | props[i] < 0)
+          stop('Invalid proportion(s)')
+      props <- sort(props)
+      res <- summarise(group_by(self$output, n), quantile(power, probs=props[1]), .groups='keep')
+      if (length(props) > 1) {
+        for (i in 2:length(props)) {
+          res <- left_join(res, summarise(group_by(self$output, n), quantile(power, probs=props[i]), .groups='keep'), by='n')
+        }
+      }
+      col_names <- c('n', props)
+      colnames(res) <- col_names
+      return(res)
+    },
+    
+    boxplot = function() {
+      if (is.null(self$output))
+        stop('Run hybrid_power() first')
+      p <- ggplot(self$output, aes(x=factor(n), y=power)) + geom_boxplot()
       p <- p + xlab('Sample Size') + ylab('Power') + ggtitle('Distributions of Power')
       p <- p + stat_summary(fun=mean, geom="point", shape=5, size=4)
       p
@@ -153,7 +173,7 @@ HybridPowerTtest <- R6Class(
     draw_prior_es = function() {
       if (self$prior == 'normal') {
         return(
-          rnorm(self$n_prior, self$prior_mu, self$prior_sd)
+          rnorm(self$n_prior, self$prior_mu, self$prior_sigma)
         )
       }
       else if (self$prior == 'uniform') {
@@ -165,7 +185,7 @@ HybridPowerTtest <- R6Class(
         stop('Invalid prior type')
     },
 
-    hybrid_power = function(n) {
+    generate_hybrid_power = function(n) {
       return(
         sapply(
           private$draw_prior_es(),
@@ -175,55 +195,75 @@ HybridPowerTtest <- R6Class(
       )
     },
 
-    melt_powers = function(power_list) {
-      powers <- data.frame(power_list)
-      colnames(powers) = self$ns
+    melt_output = function(power_list) {
+      output <- data.frame(power_list)
+      colnames(output) = self$ns
       return(
         suppressMessages(
-          reshape2::melt(powers, variable.name='n', value.name = 'power')
+          reshape2::melt(output, variable.name='n', value.name = 'power')
         )
       )
-    },
-
-    assurance = function(n) {
-      return(mean(private$hybrid_power(n)))
     }
   )
 )
 
+##############
+## Examples ##
+##############
+
+# Classical power analysis
 power_classical <- HybridPowerTtest$new(
   ns = seq(10, 90, 10),
-  d = 0.5
+  d = 0.5,
+  alpha=.01
 )
 power_classical$classical_power()
 
+# B-C hybrid power analysis
+
+# Note that assurance_props is now another input to the initializer (default is 0.5, which is the median)
+# Also note that you can change the significance level (default is still alpha=0.05)
 power_hybrid <- HybridPowerTtest$new(
   ns = seq(10, 90, 10),
   n_prior=1000,
   prior = 'normal',
   prior_mu = 0.3,
-  prior_sd = 0.1
+  prior_sigma = 0.1,
+  alpha=0.1,
+  assurance_props = c(.5, .75)
 )
 
-# This should generate an error
+# This should generate an error because you haven't specified the 'd' here.
 power_hybrid$classical_power()
 
-power_hybrid$generate_hybrid_power()
-power_hybrid$assurances()
-powers <- power_hybrid$generate_hybrid_power()
-power_hybrid$plot_power(powers)
-
-power_both <- HybridPowerTtest$new(
-  d = 0.5,
+# Now it will be OK
+power_hybrid <- HybridPowerTtest$new(
   ns = seq(10, 90, 10),
   n_prior=1000,
   prior = 'normal',
   prior_mu = 0.3,
-  prior_sd = 0.1
+  prior_sigma = 0.1,
+  alpha=0.1,
+  assurance_props = c(.5, .75),
+  d = 0.1
 )
+power_hybrid$classical_power()
 
-power_both$classical_power()
-power_both$generate_hybrid_power()
-power_both$assurances()
-powers <- power_both$generate_hybrid_power()
-power_both$plot_power(powers)
+# This saves the generated hybrid power values at self$output (in this case, power_hybrid$output)
+power_hybrid$hybrid_power()
+
+# You can also do this because hybrid_power() saves the power values as well as returning them as output values
+powers <- power_hybrid$hybrid_power()
+
+# You can retrieve the saved power values like this
+power_hybrid$output
+
+# These must be run after running hybrid_power()
+# because they assume that power values are already saved in self$output
+# Otherwise, they would raise an error.
+
+power_hybrid$assurance()
+power_hybrid$boxplot()
+power_hybrid$assurance()
+power_hybrid$assurance_level()
+
