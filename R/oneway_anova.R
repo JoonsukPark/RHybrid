@@ -125,6 +125,26 @@ HybridPowerOnewayANOVA <- R6Class(
         }
         return(private$compute_f_prob(f2, ncp, df1, df2))
       }
+<<<<<<< HEAD
+=======
+    },
+
+    hybrid_power = function(cores=NULL) {
+      if (self$parallel) {
+        if (!(cores)) cores <- detectCores()
+        self$output <- parallel::mclapply(self$ns, private$generate_hybrid_power)
+        private$melt_output()
+      }
+      else {
+        res <- list()
+        for (i in 1:length(self$ns)) {
+          res[[i]] <- private$generate_hybrid_power(self$ns[i])
+        }
+        self$output <- res
+        private$melt_output()
+      }
+      return(self$output)
+>>>>>>> 642f19fa7a415fd4fafeeed7834d571453bd004b
     }
   ),
 

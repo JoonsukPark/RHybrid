@@ -152,8 +152,32 @@ HybridPowerChisqTest <- R6Class(
       cat('Test type: Chi^2\n')
     },
 
+<<<<<<< HEAD
     classical_power = function(n=self$ns, p_1=self$p_1) {
       return(1 - pchisq(qchisq(1-self$alpha, df=length(p_1)-1), df=length(p_1)-1, ncp=sum((p_1 - self$p_0)^2/self$p_0)*n))
+=======
+    classical_power = function(n=self$ns, p=self$p_1) {
+      return(1 - pchisq(qchisq(1-self$alpha, df=length(p)-1), df=length(p)-1, ncp=sum((p - self$p_0)^2/self$p_0)*n))
+    },
+
+    hybrid_power = function(cores=NULL) {
+      if (self$parallel) {
+        library(parallel)
+        if (!(cores)) cores <- detectCores()
+        self$output <- mclapply(self$ns, private$generate_hybrid_power)
+        private$melt_output()
+        return(self$output)
+      }
+      else {
+        res <- list()
+        for (i in 1:length(self$ns)) {
+          res[[i]] <- private$generate_hybrid_power(self$ns[i])
+        }
+        self$output <- res
+        private$melt_output()
+        return(self$output)
+      }
+>>>>>>> 642f19fa7a415fd4fafeeed7834d571453bd004b
     }
   ),
 
@@ -178,7 +202,40 @@ HybridPowerChisqTest <- R6Class(
     },
 
     generate_hybrid_power = function(n) {
+<<<<<<< HEAD
       return(apply(private$draw_prior_es(), 1, FUN=self$classical_power, n=n))
     }
   )
 )
+=======
+      ps <- private$draw_prior_es()
+      return(apply(ps, 1, FUN=self$classical_power, n=n))
+    }
+  )
+)
+
+# Classical power analysis
+x_classical <- HybridPowerChisqTest$new(
+  ns = seq(10, 90, 10),
+  p_0 = c(1/3, 1/3, 1/3),
+  p_1 = c(1/4, 1/4, 1/2)
+)
+x_classical$classical_power()
+
+# Hybrid power analysis
+x_hybrid <- HybridPowerChisqTest$new(
+  prior='beta',
+  parallel = T,
+  ns = seq(10, 90, 10),
+  n_prior=1000,
+  prior_alpha = 1,
+  prior_beta = 2,
+  p_0 = c(1/2, 1/2),
+  p_1 = c(1/3, 2/3)
+)
+
+x_hybrid$classical_power()
+x_hybrid$hybrid_power()
+x_hybrid$assurance()
+x_hybrid$boxplot()
+>>>>>>> 642f19fa7a415fd4fafeeed7834d571453bd004b

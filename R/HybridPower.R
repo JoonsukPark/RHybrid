@@ -122,6 +122,7 @@ HybridPower <- R6Class(
       return(res)
     },
 
+<<<<<<< HEAD
     hybrid_power = function(cores=NULL) {
       if (self$parallel) {
         if (is.null(cores)) cores <- detectCores()
@@ -139,6 +140,8 @@ HybridPower <- R6Class(
       return(self$output)
     },
 
+=======
+>>>>>>> 642f19fa7a415fd4fafeeed7834d571453bd004b
     boxplot = function() {
       if (is.null(self$output))
         stop('Run hybrid_power() first')

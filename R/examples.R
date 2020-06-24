@@ -124,6 +124,7 @@
 # power_both$assurance_level()
 # power_both$boxplot()
 #
+<<<<<<< HEAD
 # ############################
 # ## Example 3: 2-way ANOVA ##
 # ############################
@@ -158,6 +159,10 @@
 #
 # ######################################
 # ## Example 4: bivariate correlation ##
+=======
+# ######################################
+# ## Example 3: bivariate correlation ##
+>>>>>>> 642f19fa7a415fd4fafeeed7834d571453bd004b
 # ######################################
 #
 # Classical power analysis (minimal example)
@@ -220,7 +225,11 @@
 # x_hybrid$assurance_level()
 #
 # #################################
+<<<<<<< HEAD
 # ## Example 5: Proportions test ##
+=======
+# ## Example 4: Proportions test ##
+>>>>>>> 642f19fa7a415fd4fafeeed7834d571453bd004b
 # #################################
 #
 # x <- HybridPowerProp$new(
@@ -244,6 +253,7 @@
 # x$hybrid_power()
 # x$assurance()
 # x$boxplot()
+<<<<<<< HEAD
 #
 # ##########################
 # ## Example 6: Sign test ##
@@ -326,3 +336,5 @@
 # x_hybrid$hybrid_power()
 # x_hybrid$assurance()
 # x_hybrid$boxplot()
+=======
+>>>>>>> 642f19fa7a415fd4fafeeed7834d571453bd004b

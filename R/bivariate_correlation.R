@@ -104,6 +104,23 @@ HybridPowerCorrelation <- R6Class(
           1 - pnorm(crit_r_z, r_z, 1/sqrt(n-3))
         )
       }
+<<<<<<< HEAD
+=======
+    },
+
+    hybrid_power = function(cores=NULL) {
+      if (self$parallel) {
+        if (is.null(cores)) cores <- parallel::detectCores()
+        self$output <- parallel::mclapply(self$ns, private$generate_hybrid_power)
+        private$melt_output()
+        return(self$output)
+      }
+      else {
+        self$output <- lapply(self$ns, private$hybrid_power)
+        private$melt_output()
+        return(self$output)
+      }
+>>>>>>> 642f19fa7a415fd4fafeeed7834d571453bd004b
     }
   ),
 

@@ -58,6 +58,7 @@ HybridPowerProp <- R6Class(
     ) {
       super$initialize(
         parallel = FALSE,
+<<<<<<< HEAD
         ns=ns,
         n_prior=n_prior,
         n_MC=n_MC,
@@ -65,6 +66,15 @@ HybridPowerProp <- R6Class(
         alpha=alpha,
         alt=alt,
         assurance_props=assurance_props
+=======
+        ns,
+        n_prior,
+        n_MC,
+        prior,
+        alpha,
+        alt,
+        assurance_props
+>>>>>>> 642f19fa7a415fd4fafeeed7834d571453bd004b
       )
       self$design <- design
       self$n_MC <- n_MC
@@ -219,6 +229,27 @@ HybridPowerProp <- R6Class(
           return(sapply(n, private$sim_exact_test, n_MC = self$n_MC, pi_1=pi_1, pi_2=pi_2))
         }
       }
+<<<<<<< HEAD
+=======
+    },
+
+    hybrid_power = function(cores=NULL) {
+      if (self$parallel) {
+        library(parallel)
+        if (!(cores)) cores <- detectCores()
+        self$output <- mclapply(self$ns, private$generate_hybrid_power)
+        private$melt_output()
+      }
+      else {
+        res <- list()
+        for (i in 1:length(self$ns)) {
+          res[[i]] <- private$generate_hybrid_power(self$ns[i])
+        }
+        self$output <- res
+        private$melt_output()
+      }
+      return(self$output)
+>>>>>>> 642f19fa7a415fd4fafeeed7834d571453bd004b
     }
   ),
 
@@ -355,3 +386,28 @@ HybridPowerProp <- R6Class(
     }
   )
 )
+<<<<<<< HEAD
+=======
+
+x <- HybridPowerProp$new(
+  parallel=T,
+  ns = seq(30, 90, 10),
+  n_prior=100,
+  prior = 'truncnorm',
+  prior_pi_1_mu = .6,
+  prior_pi_1_sd = .1,
+  prior_pi_2_mu = .5,
+  prior_pi_2_sd = .1,
+  c = 0.5,
+  n_MC = 100,
+  alt = 'two.sided',
+  exact=T,
+  pi_1 = 0.5,
+  pi_2 = 0.7
+)
+
+x$classical_power()
+x$hybrid_power()
+x$assurance()
+x$boxplot()
+>>>>>>> 642f19fa7a415fd4fafeeed7834d571453bd004b
