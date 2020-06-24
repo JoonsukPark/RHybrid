@@ -5,6 +5,7 @@ HybridPowerSignTest <- R6Class(
   inherit = HybridPower,
   public = list(
     p_0 = NULL,
+    p_1 = NULL,
     MC = F,
     hybrid_powers = NULL,
     prior_mu = NULL,
@@ -19,9 +20,10 @@ HybridPowerSignTest <- R6Class(
       ns=c(),
       n_prior=1,
       n_MC=1,
-      prior='beta',
+      prior=NULL,
       alpha = 0.05,
       p_0 = 0.5,
+      p_1 = NULL,
       alt = 'two.sided',
       MC=F,
       prior_mu = 0.5,
@@ -29,80 +31,97 @@ HybridPowerSignTest <- R6Class(
       prior_lower = 0,
       prior_upper = 1,
       prior_alpha = 1,
-      prior_beta = 1
+      prior_beta = 1,
+      assurance_props = NULL
     ) {
       super$initialize(
         parallel = FALSE,
-        ns,
-        n_prior,
-        n_MC,
-        prior,
-        alpha,
-        alt
+        ns=ns,
+        n_prior=n_prior,
+        n_MC=n_MC,
+        prior=prior,
+        alpha=alpha,
+        alt=alt,
+        assurance_props=assurance_props
       )
+      if (!(is.numeric(p_0)) | p_0 > 1 | p_0 < 0)
+        stop('Invalid p_0')
+      if (!(is.null(p_1))) {
+        if (!(is.numeric(p_1)) | p_1 > 1 | p_1 < 0)
+          stop('Invalid p_1')
+      }
+      if (!(is.null(prior))) {
+        if (prior == 'beta') {
+          if (!(is_numeric(prior_alpha) & is_numeric(prior_beta)))
+            stop('Invalid input type for the priors')
+          if (prior_alpha <= 0)
+            stop('prior_alpha should be positive')
+          if (prior_beta <= 0)
+            stop('prior_beta should be positive')
+          self$prior_alpha <- prior_alpha
+          self$prior_beta <- prior_beta
+        }
+        if (prior == 'truncnorm') {
+          if (prior_mu <= 0 | prior_mu >= 1)
+            stop('prior_mu should be between 0 and 1')
+          if (prior_sd <= 0)
+            stop('prior sd should be positive')
+          self$prior_mu <- prior_mu
+          self$prior_sd <- prior_sd
+        }
+        else if (prior == 'uniform') {
+          if (prior_lower < 0 | prior_lower > 1)
+            stop('The lower bound should be between 0 and 1')
+          if (prior_upper < 0 | prior_upper > 1)
+            stop('The upper bound should be between 0 and 1')
+          if (prior_lower >= prior_upper)
+            stop('The lower bound should be smaller than the upper bound')
+          self$prior_lower <- prior_lower
+          self$prior_upper <- prior_upper
+        }
+      }
       self$p_0 <- p_0
+      self$p_1 <- p_1
       self$MC <- MC
-      if (prior == 'beta') {
-        if (!(is_numeric(prior_alpha) & is_numeric(prior_beta)))
-          stop('Invalid input type for the priors')
-        if (prior_alpha <= 0)
-          stop('prior_alpha should be positive')
-        if (prior_beta <= 0)
-          stop('prior_beta should be positive')
-        self$prior_alpha <- prior_alpha
-        self$prior_beta <- prior_beta
-      }
-      if (prior == 'truncnorm') {
-        if (prior_mu <= 0 | prior_mu >= 1)
-          stop('prior_mu should be between 0 and 1')
-        if (prior_sd <= 0)
-          stop('prior sd should be positive')
-        self$prior_mu <- prior_mu
-        self$prior_sd <- prior_sd
-      }
-      else if (prior == 'uniform') {
-        if (prior_lower < 0 | prior_lower > 1)
-          stop('The lower bound should be between 0 and 1')
-        if (prior_upper < 0 | prior_upper > 1)
-          stop('The upper bound should be between 0 and 1')
-        if (prior_lower >= prior_upper)
-          stop('The lower bound should be smaller than the upper bound')
-        self$prior_lower <- prior_lower
-        self$prior_upper <- prior_upper
-      }
     },
 
     print = function() {
       super$print()
-      if (self$prior == 'beta') {
-        cat('Prior alpha: ', self$prior_alpha, '\n')
-        cat('Prior beta: ', self$prior_beta, '\n\n')
-      }
-      else if (self$prior == 'normal') {
-        cat('Prior mean: ', self$prior_mu, '\n')
-        cat('Prior sd: ', self$prior_sd, '\n\n')
-      }
-      else if (self$prior == 'uniform') {
-        cat('Prior lower bound: ', self$prior_lower, '\n')
-        cat('Prior upper bound: ', self$prior_upper, '\n\n')
+      cat('p under H_0: ', self$p_0, '\n')
+      if (!(is.null(self$p_1)))
+        cat('p under H_1: ', self$p_1, '\n')
+      if (!(is.null(self$prior))) {
+        if (self$prior == 'beta') {
+          cat('Prior alpha: ', self$prior_alpha, '\n')
+          cat('Prior beta: ', self$prior_beta, '\n\n')
+        }
+        else if (self$prior == 'normal') {
+          cat('Prior mean: ', self$prior_mu, '\n')
+          cat('Prior sd: ', self$prior_sd, '\n\n')
+        }
+        else if (self$prior == 'uniform') {
+          cat('Prior lower bound: ', self$prior_lower, '\n')
+          cat('Prior upper bound: ', self$prior_upper, '\n\n')
+        }
       }
       cat('Test type: Sign Test\n')
     },
 
-    classical_power = function(n, p, p_0) {
+    classical_power = function(n=self$ns, p_0=self$p_0, p_1=self$p_1) {
+      if (is.null(p_1))
+        stop('Provide a value of p_1')
       if (self$MC) {
         return(
           mean(
-            sapply(rbinom(self$n_MC, n, p), FUN=private$binom_test, n=n, p_0=p_0)
+            sapply(rbinom(self$n_MC, n, p_1), FUN=private$binom_test, n=n, p_0=p_0)
           )
         )
       }
-
       else {
         mu_0 <- n*p_0
-        mu_1 <- n*p
+        mu_1 <- n*p_1
         sigma_0 <- sqrt(mu_0*(1-p_0))
-        sigma_1 <- sqrt(mu_1*(1-p))
+        sigma_1 <- sqrt(mu_1*(1-p_1))
         rho <- sigma_1 / sigma_0
         if (self$alt == 'two.sided') {
           z_lower <- ((mu_0 - mu_1) / sigma_0 + qnorm(self$alpha/2))/rho
@@ -120,45 +139,21 @@ HybridPowerSignTest <- R6Class(
       }
     },
 
-    generate_hybrid_power = function(cores=NULL) {
+    hybrid_power = function(cores=NULL) {
       if (self$parallel) {
-        library(parallel)
         if (!(cores)) cores <- detectCores()
-        return(
-          private$melt_powers(
-            mclapply(self$ns, private$hybrid_power)
-          )
-        )
+        self$output <- parallel::mclapply(self$ns, private$generate_hybrid_power)
+        private$melt_output()
       }
       else {
         res <- list()
         for (i in 1:length(self$ns)) {
-          res[[i]] <- private$hybrid_power(self$ns[i])
+          res[[i]] <- private$generate_hybrid_power(self$ns[i])
         }
-        return(private$melt_powers(res))
+        self$output <- res
+        private$melt_output()
       }
-    },
-
-    assurances = function(cores=NULL) {
-      if (self$parallel) {
-        library(parallel)
-        if (!(cores)) cores <- detectCores()
-        return(mclapply(self$ns, private$assurance))
-      }
-      else {
-        res <- list()
-        for (i in 1:length(self$ns)) {
-          res[[i]] <- private$assurance(self$ns[i])
-        }
-        return(res)
-      }
-    },
-
-    plot_power = function(power_df) {
-      p <- ggplot(power_df, aes(x=factor(n), y=power)) + geom_boxplot()
-      p <- p + xlab('Sample Size') + ylab('Power') + ggtitle('Distributions of Power')
-      p <- p + stat_summary(fun=mean, geom="point", shape=5, size=4)
-      p
+      return(self$output)
     }
   ),
 
@@ -195,42 +190,11 @@ HybridPowerSignTest <- R6Class(
       }
     },
 
-    hybrid_power = function(n) {
+    generate_hybrid_power = function(n) {
       es <- private$draw_prior_es()
       return(
         sapply(es, FUN=self$classical_power, n=n, p_0=self$p_0)
       )
-    },
-
-    melt_powers = function(power_list) {
-      powers <- data.frame(power_list)
-      colnames(powers) = self$ns
-      return(
-        suppressMessages(
-          reshape2::melt(powers, variable.name='n', value.name = 'power')
-        )
-      )
-    },
-
-    assurance = function(n) {
-      return(
-        mean(private$hybrid_power(n))
-      )
     }
   )
 )
-
-# x <- HybridPowerSignTest$new(
-#   prior='uniform',
-#   parallel = T,
-#   ns = seq(10, 90, 10),
-#   n_prior=1000,
-#   n_MC = 100,
-#   p_0 = 0.5,
-#   MC=F
-# )
-#
-# x$classical_power(n=50, p=0.65, p_0=0.5)
-# x$generate_hybrid_power()
-# x$assurances()
-# x$plot_power(x$generate_hybrid_power())

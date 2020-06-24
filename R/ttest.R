@@ -109,63 +109,6 @@ HybridPowerTtest <- R6Class(
           )$power
         )
       }
-    },
-
-    hybrid_power = function(cores=NULL) {
-      if (is.null(self$prior))
-        stop('Specify a prior first')
-      else {
-        if (self$parallel) {
-          library(parallel)
-          if (!(cores)) cores <- detectCores()
-          self$output <- private$melt_output(
-            mclapply(self$ns, private$generate_hybrid_power)
-          )
-        }
-        else {
-          res <- list()
-          for (i in 1:length(self$ns)) {
-            res[[i]] <- private$generate_hybrid_power(self$ns[i])
-          }
-          self$output <- private$melt_output(res)
-        }
-        return(self$output)
-      }
-    },
-
-    assurance = function() {
-      if (is.null(self$output))
-        stop('Run hybrid_power() first')
-      return(summarise(group_by(self$output, n), assurance = mean(power), .groups='keep'))
-    },
-
-    assurance_level = function(props=self$assurance_props) {
-      if (is.null(self$output))
-        stop('Run hybrid_power() first')
-      if (is.null(props))
-        stop('Provide target proportions')
-      for (i in 1:length(props))
-        if (!(is.numeric(props[i])) | props[i] > 1 | props[i] < 0)
-          stop('Invalid proportion(s)')
-      props <- sort(props)
-      res <- summarise(group_by(self$output, n), quantile(power, probs=props[1]), .groups='keep')
-      if (length(props) > 1) {
-        for (i in 2:length(props)) {
-          res <- left_join(res, summarise(group_by(self$output, n), quantile(power, probs=props[i]), .groups='keep'), by='n')
-        }
-      }
-      col_names <- c('n', props)
-      colnames(res) <- col_names
-      return(res)
-    },
-
-    boxplot = function() {
-      if (is.null(self$output))
-        stop('Run hybrid_power() first')
-      p <- ggplot(self$output, aes(x=factor(n), y=power)) + geom_boxplot()
-      p <- p + xlab('Sample Size') + ylab('Power') + ggtitle('Distributions of Power')
-      p <- p + stat_summary(fun=mean, geom="point", shape=5, size=4)
-      p
     }
   ),
 
@@ -193,17 +136,6 @@ HybridPowerTtest <- R6Class(
           n=n
         )
       )
-    },
-
-    melt_output = function(power_list) {
-      output <- data.frame(power_list)
-      colnames(output) = self$ns
-      return(
-        suppressMessages(
-          reshape2::melt(output, variable.name='n', value.name = 'power')
-        )
-      )
     }
   )
 )
-

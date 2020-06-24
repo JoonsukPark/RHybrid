@@ -6,7 +6,6 @@ HybridPowerOnewayANOVA <- R6Class(
   public = list(
     mu = NULL,
     es = NULL,
-    hybrid_powers = NULL,
     sd = 1,
     k = NULL,
     design = NULL,
@@ -29,8 +28,8 @@ HybridPowerOnewayANOVA <- R6Class(
       design = 'fe',
       rho = 0,
       epsilon = 1,
-      alt = 'one.sided',
-      assurance_props = c(0.5)
+      alt = 'two.sided',
+      assurance_props = NULL
     ) {
       super$initialize(
         parallel = FALSE,
@@ -126,56 +125,6 @@ HybridPowerOnewayANOVA <- R6Class(
         }
         return(private$compute_f_prob(f2, ncp, df1, df2))
       }
-    },
-
-    hybrid_power = function(cores=NULL) {
-      if (self$parallel) {
-        library(parallel)
-        if (!(cores)) cores <- detectCores()
-        self$output <- private$melt_powers(mclapply(self$ns, private$generate_hybrid_power))
-        return(self$output)
-      }
-      else {
-        res <- list()
-        for (i in 1:length(self$ns)) {
-          res[[i]] <- private$generate_hybrid_power(self$ns[i])
-        }
-        self$output <- private$melt_powers(res)
-        return(self$output)
-      }
-    },
-
-    assurance = function() {
-      if (is.null(self$output))
-        stop('Run hybrid_power() first')
-      return(summarise(group_by(self$output, n), assurance = mean(power), .groups='keep'))
-    },
-
-    assurance_level = function(props=self$assurance_props) {
-      if (is.null(self$output))
-        stop('Run hybrid_power() first')
-      if (is.null(props))
-        stop('Provide target proportions')
-      for (i in 1:length(props))
-        if (!(is.numeric(props[i])) | props[i] > 1 | props[i] < 0)
-          stop('Invalid proportion(s)')
-      props <- sort(props)
-      res <- summarise(group_by(self$output, n), quantile(power, probs=props[1]), .groups='keep')
-      if (length(props) > 1) {
-        for (i in 2:length(props)) {
-          res <- left_join(res, summarise(group_by(self$output, n), quantile(power, probs=props[i]), .groups='keep'), by='n')
-        }
-      }
-      col_names <- c('n', props)
-      colnames(res) <- col_names
-      return(res)
-    },
-
-    boxplot = function() {
-      p <- ggplot(self$output, aes(x=factor(n), y=power)) + geom_boxplot()
-      p <- p + xlab('Sample Size') + ylab('Power') + ggtitle('Distributions of Power')
-      p <- p + stat_summary(fun=mean, geom="point", shape=5, size=4)
-      p
     }
   ),
 
@@ -228,16 +177,6 @@ HybridPowerOnewayANOVA <- R6Class(
           1,
           FUN=self$classical_power,
           n=n
-        )
-      )
-    },
-
-    melt_powers = function(power_list) {
-      powers <- data.frame(power_list)
-      colnames(powers) = self$ns
-      return(
-        suppressMessages(
-          melt(powers, variable.name='n', value.name = 'power')
         )
       )
     }

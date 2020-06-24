@@ -7,6 +7,7 @@ Maintainer: Joonsuk Park <vergilius85@gmail.com>
 Description: 
     Computes Bayesian-Classical and classical power values.
 Imports:
+    parallel,
     dplyr,
     R6,
     ggplot2,

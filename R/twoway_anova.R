@@ -5,7 +5,7 @@ HybridPowerTwowayANOVA <- R6Class(
   inherit = HybridPower,
   public = list(
     es = NULL,
-    hybrid_powers = NULL,
+    cellmeans = NULL,
     sd = 1,
     k = NULL,
     m = NULL,
@@ -23,25 +23,45 @@ HybridPowerTwowayANOVA <- R6Class(
       n_MC=1,
       prior='normal',
       alpha = 0.05,
+      cellmeans=NULL,
       prior_mu = c(),
-      prior_sd = c(),
+      prior_sigma = c(),
       prior_lower = c(),
       prior_upper = c(),
       sd = 1,
       design = 'fe',
       rho = NULL,
       epsilon = NULL,
-      alt = 'one.sided'
+      alt = 'one.sided',
+      assurance_props = NULL
     ) {
       super$initialize(
         parallel = FALSE,
-        ns,
-        n_prior,
-        n_MC,
-        prior,
-        alpha,
-        alt
+        ns=ns,
+        n_prior=n_prior,
+        n_MC=n_MC,
+        prior=prior,
+        alpha=alpha,
+        alt=alt,
+        assurance_props=assurance_props
       )
+      self$fe_factor <- which(design == 'fe')
+      self$rm_factor <- which(design == 'rm')
+      if (!(is.null(cellmeans))) {
+        if (length(dim(cellmeans)) != 2)
+          stop('Input a 2-dimensional cell means matrix')
+        dims <- dim(cellmeans)
+        self$k <- dims[self$fe_factor]
+        self$m <- dims[self$rm_factor]
+        for(i in 1:dims[1]) {
+          for(j in 1:dims[2]) {
+            if (!(is.numeric(cellmeans[i][j])))
+              stop('Invalid cell means')
+          }
+        }
+        self$cellmeans <- cellmeans
+      }
+
       if (length(design) != 2)
         stop('The vector of designs should have a length of 2')
       if (sum(design == 'rm') == 2)
@@ -56,13 +76,13 @@ HybridPowerTwowayANOVA <- R6Class(
           stop('Input a 2 by 2 matrix for prior means!')
         if (sum(dim(prior_mu) == 1) > 0)
           stop('At least 1 of the IVs has a single level')
-        if (!(is.matrix(prior_sd)) | !(length(dim(prior_sd)) == 2))
+        if (!(is.matrix(prior_sigma)) | !(length(dim(prior_sigma)) == 2))
           stop('Input a 2 by 2 matrix for prior standard deviations!')
-        if (sum(dim(prior_sd) == 1) > 0)
+        if (sum(dim(prior_sigma) == 1) > 0)
           stop('At least 1 of the IVs has a single level')
-        if (sum(prior_sd <= 0) > 0)
+        if (sum(prior_sigma <= 0) > 0)
           stop('Prior standard deviations must be strictly positive')
-        if (sum((dim(prior_mu) == dim(prior_sd)) == FALSE) > 0)
+        if (sum((dim(prior_mu) == dim(prior_sigma)) == FALSE) > 0)
           stop('Dimensions of prior means and sds should be identical')
       }
       else if (prior == 'uniform') {
@@ -89,21 +109,19 @@ HybridPowerTwowayANOVA <- R6Class(
         for (i in 1:self$rm_dim)
           if (rho[i] >= 1 | rho[i] < 0)
             stop('rho should be between 0 and 1!')
-          if (epsilon[i] > 1 | epsilon[i] < 0)
-            stop('epsilon should be between 0 and 1!')
+        if (epsilon[i] > 1 | epsilon[i] < 0)
+          stop('epsilon should be between 0 and 1!')
       }
       if (sd <=0) stop('Standard deviation must be strictly positive')
 
       self$design <- design
-      self$fe_factor <- which(design == 'fe')
-      self$rm_factor <- which(design == 'rm')
       self$rho <- rho
       self$sd <- sd
       self$epsilon <- epsilon
 
       if (prior == 'normal') {
         self$prior_mu <- prior_mu
-        self$prior_sd <- prior_sd
+        self$prior_sigma <- prior_sigma
         dims <- dim(prior_mu)
         self$k <- dims[self$fe_factor]
         self$m <- dims[self$rm_factor]
@@ -124,8 +142,8 @@ HybridPowerTwowayANOVA <- R6Class(
         cat(self$prior_mu[1,], '\n')
         cat(self$prior_mu[2,], '\n\n')
         cat('Prior standard deviations: \n\n')
-        cat(self$prior_sd[1,], '\n')
-        cat(self$prior_sd[2,], '\n')
+        cat(self$prior_sigma[1,], '\n')
+        cat(self$prior_sigma[2,], '\n')
         cat('Implied f values: ',
             private$compute_f(self$prior_mu, 1), ' ',
             private$compute_f(self$prior_mu, 2), '\n\n'
@@ -151,7 +169,7 @@ HybridPowerTwowayANOVA <- R6Class(
         cat('epsilon: ', self$epsilon, '\n')
     },
 
-    classical_power = function(means=NULL, n=self$ns) {
+    classical_power = function(means=self$cellmeans, n=self$ns) {
       powers <- list()
       if (is.null(means)) {
         if (self$prior == 'normal')
@@ -202,71 +220,76 @@ HybridPowerTwowayANOVA <- R6Class(
       return(powers)
     },
 
-    generate_hybrid_power = function(cores=NULL) {
+    hybrid_power = function(cores=NULL) {
       if (self$parallel) {
         library(parallel)
         if (!(cores)) cores <- detectCores()
-        return(
-          melt(
-            private$gather_powers(
-              mclapply(
-                self$ns, private$hybrid_power)
-            )
+        self$output <- melt(
+          private$gather_powers(
+            mclapply(
+              self$ns, private$generate_hybrid_power)
           ),
           id.vars = 'n',
           variable.name = 'type',
           value.name = 'power'
         )
+        return(self$output)
       }
       else {
         res <- list()
         for (i in 1:length(self$ns)) {
-          res[[i]] <- private$hybrid_power(self$ns[i])
+          res[[i]] <- private$generate_hybrid_power(self$ns[i])
         }
-        return(
-          melt(private$gather_powers(res),
-               id.vars = 'n',
-               variable.name = 'type',
-               value.name = 'power'
-          )
+        self$output <- melt(private$gather_powers(res),
+          id.vars = 'n',
+          variable.name = 'type',
+          value.name = 'power'
         )
+        return(self$output)
       }
     },
 
-    assurances = function(cores=NULL) {
-      if (self$parallel) {
-        library(parallel)
-        if (!(cores)) cores <- detectCores()
-        return(
-          private$gather_assurances(
-            mclapply(self$ns, private$assurance)
-          )
-        )
-      }
-      else {
-        res <- list()
-        for (i in 1:length(self$ns)) {
-          res[[i]] <- private$assurance(self$ns[i])
-        }
-        return(private$gather_assurances(res))
-      }
-    },
-
-    plot_power = function(power_df, factors='all') {
+    boxplot = function(power_df=self$output, factors='all') {
       if (sum(factors == 'all') > 0)
         p <- ggplot(power_df, aes(x=factor(n), y=power, color=type))
       else {
         tryCatch(
-        {
-          power_df <- power_df %>% filter(type %in% factors)
-          p <- ggplot(power_df, aes(x=factor(n), y=power, color=type))
-        }, error = function(e) stop('Invalid IV type!')
+          {
+            power_df <- power_df %>% filter(type %in% factors)
+            p <- ggplot(power_df, aes(x=factor(n), y=power, color=type))
+          }, error = function(e) stop('Invalid IV type!')
         )
       }
       p <- p + geom_boxplot()
       p <- p + xlab('Sample Size') + ylab('Power') + ggtitle('Distributions of Power')
       p <- p + stat_summary(fun=mean, geom="point", shape=5, size=4)
       p
+    },
+
+    assurance = function() {
+      if (is.null(self$output))
+        stop('Run hybrid_power() first')
+      return(summarise(group_by(self$output, n, type), assurance = mean(power), .groups='keep'))
+    },
+
+    assurance_level = function(props=self$assurance_props) {
+      if (is.null(self$output))
+        stop('Run hybrid_power() first')
+      if (is.null(props))
+        stop('Provide target proportions')
+      for (i in 1:length(props))
+        if (!(is.numeric(props[i])) | props[i] > 1 | props[i] < 0)
+          stop('Invalid proportion(s)')
+      props <- sort(props)
+      res <- summarise(group_by(self$output, n, type), quantile(power, probs=props[1]), .groups='keep')
+      if (length(props) > 1) {
+        for (i in 2:length(props)) {
+          res <- left_join(res, summarise(group_by(self$output, n, type), quantile(power, probs=props[i]), .groups='keep'), by=c('n', 'type'))
+        }
+      }
+      col_names <- c('n', 'type', props)
+      colnames(res) <- col_names
+      return(res)
     }
   ),
 
@@ -304,13 +327,13 @@ HybridPowerTwowayANOVA <- R6Class(
       means <- list()
       if (self$prior == 'normal') {
         prior_mu <- as.vector(self$prior_mu)
-        prior_sd <- as.vector(self$prior_sd)
+        prior_sigma <- as.vector(self$prior_sigma)
         if (length(self$k) == 1)
           len <- self$k*self$m
         else len <- prod(self$k)
         means <- list()
         for (i in 1:self$n_prior) {
-          means[[i]] <- matrix(rnorm(len, prior_mu, prior_sd), ncol = ncol(self$prior_mu))
+          means[[i]] <- matrix(rnorm(len, prior_mu, prior_sigma), ncol = ncol(self$prior_mu))
         }
       }
       else if (self$prior == 'uniform') {
@@ -325,7 +348,7 @@ HybridPowerTwowayANOVA <- R6Class(
       return(means)
     },
 
-    hybrid_power = function(n) {
+    generate_hybrid_power = function(n) {
       means <- private$draw_prior_es()
       return(
         matrix(
@@ -357,26 +380,6 @@ HybridPowerTwowayANOVA <- R6Class(
       }
       colnames(res) = c('n', self$design, 'interaction')
       return(res)
-    },
-
-    assurance = function(n) {
-      return(
-        colMeans(private$hybrid_power(n))
-      )
     }
   )
 )
-
-# z <- HybridPowerTwowayANOVA$new(
-#   parallel = T,
-#   ns = c(10, 20, 30, 40),
-#   n_prior=10,
-#   design = c('fe', 'rm'),
-#   prior_mu = matrix(c(2, 2.2, 2, 1.8, 2, 2.4), nrow=3),
-#   prior_sd = matrix(rep(.5, 6), nrow=3),
-#   sd = 2,
-#   rho = 0.2,
-#   epsilon=1
-# )
-# z$generate_hybrid_power()
-# z$plot_power(z$generate_hybrid_power(), 'interaction')
