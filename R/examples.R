@@ -115,10 +115,100 @@
 #   sd = 1,
 #   design='fe',
 #   prior = 'normal',
-#   n_prior = 1000
+#   n_prior = 1000,
+#   assurance_props = c(.2, .5, .8)
 # )
 #
 # power_both$classical_power()
 # power_both$hybrid_power()
 # power_both$assurance_level()
 # power_both$boxplot()
+#
+# ######################################
+# ## Example 3: bivariate correlation ##
+# ######################################
+#
+# Classical power analysis (minimal example)
+#
+# x_classical <- HybridPowerCorrelation$new(
+#   ns = seq(10, 90, 10),
+#   rho = .7,
+#   alt = 'two.sided'
+# )
+#
+# x_classical$classical_power()
+#
+# # Hybrid power analysis
+#
+# x_hybrid <- HybridPowerCorrelation$new(
+#   parallel = T,
+#   ns = seq(10, 90, 10),
+#   n_prior=1000,
+#   rho = .5,
+#   prior_mu = .3,
+#   prior_sd = .1,
+#   prior = 'truncnorm',
+#   alt = 'two.sided'
+# )
+#
+# x_hybrid$classical_power()
+# x_hybrid$hybrid_power()
+# x_hybrid$boxplot()
+# x_hybrid$assurance()
+# x_hybrid$assurance_level()
+#
+# # Classical power analysis (minimal example)
+#
+# x_classical <- HybridPowerCorrelation$new(
+#   ns = seq(10, 90, 10),
+#   rho = .7,
+#   alt = 'two.sided'
+# )
+#
+# x_classical$classical_power()
+#
+# # Hybrid power analysis
+#
+# x_hybrid <- HybridPowerCorrelation$new(
+#   parallel = T,
+#   ns = seq(10, 90, 10),
+#   n_prior=1000,
+#   rho = .5,
+#   prior_mu = .3,
+#   prior_sd = .1,
+#   prior = 'truncnorm',
+#   alt = 'two.sided',
+#   assurance_props = seq(.2, .5, .8)
+# )
+#
+# x_hybrid$classical_power()
+# x_hybrid$hybrid_power()
+# x_hybrid$boxplot()
+# x_hybrid$assurance()
+# x_hybrid$assurance_level()
+#
+# #################################
+# ## Example 4: Proportions test ##
+# #################################
+#
+# x <- HybridPowerProp$new(
+#   parallel=T,
+#   ns = seq(30, 90, 10),
+#   n_prior=100,
+#   prior = 'truncnorm',
+#   prior_pi_1_mu = .6,
+#   prior_pi_1_sd = .1,
+#   prior_pi_2_mu = .5,
+#   prior_pi_2_sd = .1,
+#   c = 0.5,
+#   n_MC = 100,
+#   alt = 'two.sided',
+#   exact=T,
+#   pi_1 = 0.5,
+#   pi_2 = 0.7
+# )
+#
+# x$classical_power()
+# x$hybrid_power()
+# x$assurance()
+# x$boxplot()

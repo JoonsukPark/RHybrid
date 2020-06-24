@@ -56,7 +56,9 @@ HybridPowerProp <- R6Class(
       prior_pi_1_mu = NULL,
       prior_pi_1_sd = NULL,
       prior_pi_2_mu = NULL,
-      prior_pi_2_sd = NULL
+      prior_pi_2_sd = NULL,
+
+      assurance_props = NULL
     ) {
       super$initialize(
         parallel = FALSE,
@@ -65,7 +67,8 @@ HybridPowerProp <- R6Class(
         n_MC,
         prior,
         alpha,
-        alt
+        alt,
+        assurance_props
       )
       self$design <- design
       self$n_MC <- n_MC
@@ -84,63 +87,66 @@ HybridPowerProp <- R6Class(
           stop('Invalid value of pi_2')
         self$pi_2 <- pi_2
       }
-      if (prior == 'beta') {
-        if (!(is_numeric(prior_pi_1_alpha) &
-             is_numeric(prior_pi_1_beta) &
-             (is.null(prior_pi_2_mu) | is_numeric(prior_pi_2_mu)) &
-             (is.null(prior_pi_2_sd) | is_numeric(prior_pi_2_sd))
+      if (!(is.null(prior))) {
+        if (prior == 'beta') {
+          if (!(is_numeric(prior_pi_1_alpha) &
+               is_numeric(prior_pi_1_beta) &
+               (is.null(prior_pi_2_mu) | is_numeric(prior_pi_2_mu)) &
+               (is.null(prior_pi_2_sd) | is_numeric(prior_pi_2_sd))
+            )
           )
-        )
-          stop('Invalid input type for the priors')
-        if (prior_pi_1_alpha <= 0)
-          stop('prior_pi_1_alpha should be positive')
-        if (prior_pi_1_beta <= 0)
-          stop('prior_pi_1_beta should be positive')
-        if (prior_pi_2_alpha <= 0)
-          stop('prior_pi_2_alpha should be positive')
-        if (prior_pi_2_beta <= 0)
-          stop('prior_pi_2_beta should be positive')
-        self$prior_pi_1_alpha <- prior_pi_1_alpha
-        self$prior_pi_1_beta <- prior_pi_1_beta
-        self$prior_pi_2_alpha <- prior_pi_2_alpha
-        self$prior_pi_2_beta <- prior_pi_2_beta
-      }
-      else if (prior == 'uniform') {
-        if ((prior_pi_1_lower > prior_pi_1_upper) |
-            prior_pi_1_lower < 0 | prior_pi_1_upper > 1 |
-            (prior_pi_2_lower > prior_pi_2_upper) |
-            prior_pi_2_lower < 0 | prior_pi_2_upper > 1)
-          stop('Invalid limits for the uniform prior(s)')
-        self$prior_pi_1_lower <- prior_pi_1_lower
-        self$prior_pi_1_upper <- prior_pi_1_upper
-        self$prior_pi_2_lower <- prior_pi_2_lower
-        self$prior_pi_2_upper <- prior_pi_2_upper
-      }
-      else if (prior == 'truncnorm') {
-        if (!(is_numeric(prior_pi_1_mu) &
-              is_numeric(prior_pi_1_sd) &
-              (is.null(prior_pi_2_mu) | is_numeric(prior_pi_2_mu)) &
-              (is.null(prior_pi_2_sd) | is_numeric(prior_pi_2_sd))
+            stop('Invalid input type for the priors')
+          if (prior_pi_1_alpha <= 0)
+            stop('prior_pi_1_alpha should be positive')
+          if (prior_pi_1_beta <= 0)
+            stop('prior_pi_1_beta should be positive')
+          if (prior_pi_2_alpha <= 0)
+            stop('prior_pi_2_alpha should be positive')
+          if (prior_pi_2_beta <= 0)
+            stop('prior_pi_2_beta should be positive')
+          self$prior_pi_1_alpha <- prior_pi_1_alpha
+          self$prior_pi_1_beta <- prior_pi_1_beta
+          self$prior_pi_2_alpha <- prior_pi_2_alpha
+          self$prior_pi_2_beta <- prior_pi_2_beta
+        }
+        else if (prior == 'uniform') {
+          if ((prior_pi_1_lower > prior_pi_1_upper) |
+              prior_pi_1_lower < 0 | prior_pi_1_upper > 1 |
+              (prior_pi_2_lower > prior_pi_2_upper) |
+              prior_pi_2_lower < 0 | prior_pi_2_upper > 1)
+            stop('Invalid limits for the uniform prior(s)')
+          self$prior_pi_1_lower <- prior_pi_1_lower
+          self$prior_pi_1_upper <- prior_pi_1_upper
+          self$prior_pi_2_lower <- prior_pi_2_lower
+          self$prior_pi_2_upper <- prior_pi_2_upper
+        }
+        else if (prior == 'truncnorm') {
+          if (!(is_numeric(prior_pi_1_mu) &
+                is_numeric(prior_pi_1_sd) &
+                (is.null(prior_pi_2_mu) | is_numeric(prior_pi_2_mu)) &
+                (is.null(prior_pi_2_sd) | is_numeric(prior_pi_2_sd))
+            )
           )
-        )
-          stop('Invalid input type for the priors')
-        if (prior_pi_1_mu <= 0 | prior_pi_1_mu >= 1)
-          stop('Prior means must be between 0 and 1')
-        if (!(is.null(prior_pi_2_mu))) {
-          if (prior_pi_2_mu <= 0 | prior_pi_2_mu >= 1 )
+            stop('Invalid input type for the priors')
+          if (prior_pi_1_mu <= 0 | prior_pi_1_mu >= 1)
             stop('Prior means must be between 0 and 1')
-        }
-        if (prior_pi_1_sd <= 0)
-          stop('Prior standard deviations must be positive')
-        if  (!(is.null(prior_pi_2_sd))) {
-          if (prior_pi_2_sd <= 0)
+          if (!(is.null(prior_pi_2_mu))) {
+            if (prior_pi_2_mu <= 0 | prior_pi_2_mu >= 1 )
+              stop('Prior means must be between 0 and 1')
+          }
+          if (prior_pi_1_sd <= 0)
             stop('Prior standard deviations must be positive')
+          if  (!(is.null(prior_pi_2_sd))) {
+            if (prior_pi_2_sd <= 0)
+              stop('Prior standard deviations must be positive')
+          }
+          self$prior_pi_1_mu <- prior_pi_1_mu
+          self$prior_pi_1_sd <- prior_pi_1_sd
+          self$prior_pi_2_mu <- prior_pi_2_mu
+          self$prior_pi_2_sd <- prior_pi_2_sd
         }
-        self$prior_pi_1_mu <- prior_pi_1_mu
-        self$prior_pi_1_sd <- prior_pi_1_sd
-        self$prior_pi_2_mu <- prior_pi_2_mu
-        self$prior_pi_2_sd <- prior_pi_2_sd
       }
+
       if (!(is.logical(exact)))
         stop('\'Exact\' must be logical')
       if (!(is.null(c))) {
@@ -219,45 +225,22 @@ HybridPowerProp <- R6Class(
       }
     },
 
-    generate_hybrid_power = function(cores=NULL) {
+    hybrid_power = function(cores=NULL) {
       if (self$parallel) {
         library(parallel)
         if (!(cores)) cores <- detectCores()
-        return(
-          private$melt_powers(
-            mclapply(self$ns, private$hybrid_power)
-          )
-        )
+        self$output <- mclapply(self$ns, private$generate_hybrid_power)
+        private$melt_output()
       }
       else {
         res <- list()
         for (i in 1:length(self$ns)) {
-          res[[i]] <- private$hybrid_power(self$ns[i])
+          res[[i]] <- private$generate_hybrid_power(self$ns[i])
         }
-        return(private$melt_powers(res))
+        self$output <- res
+        private$melt_output()
       }
-    },
-
-    assurances = function(cores=NULL) {
-      if (self$parallel) {
-        library(parallel)
-        if (!(cores)) cores <- detectCores()
-        return(mclapply(self$ns, private$assurance))
-      }
-      else {
-        res <- list()
-        for (i in 1:length(self$ns)) {
-          res[[i]] <- private$assurance(self$ns[i])
-        }
-        return(res)
-      }
-    },
-
-    plot_power = function(power_df) {
-      p <- ggplot(power_df, aes(x=factor(n), y=power)) + geom_boxplot()
-      p <- p + xlab('Sample Size') + ylab('Power') + ggtitle('Distributions of Power')
-      p <- p + stat_summary(fun=mean, geom="point", shape=5, size=4)
-      p
+      return(self$output)
     }
   ),
 
@@ -383,7 +366,7 @@ HybridPowerProp <- R6Class(
       }
     },
 
-    hybrid_power = function(n) {
+    generate_hybrid_power = function(n) {
       es <- private$draw_prior_es()
       if (is.null(dim(es))) return(self$classical_power(n, pi_1=es, pi_2=NULL, exact=self$exact))
       else {
@@ -391,46 +374,28 @@ HybridPowerProp <- R6Class(
           apply(es, 1, private$classical_power2, n=n, exact=self$exact)
         )
       }
-    },
-
-    melt_powers = function(power_list) {
-      powers <- data.frame(power_list)
-      colnames(powers) = self$ns
-      return(
-        suppressMessages(
-          reshape2::melt(powers, variable.name='n', value.name = 'power')
-        )
-      )
-    },
-
-    assurance = function(n) {
-      return(
-        mean(private$hybrid_power(n))
-      )
     }
   )
 )
 
-# x <- HybridPowerProp$new(
-#   parallel=T,
-#   ns = seq(30, 90, 10),
-#   n_prior=100,
-#   prior = 'truncnorm',
-#   prior_pi_1_mu = .6,
-#   prior_pi_1_sd = .1,
-#   prior_pi_2_mu = .5,
-#   prior_pi_2_sd = .1,
-#   c = 0.5,
-#   n_MC = 100,
-#   alt = 'two.sided',
-#   exact=T,
-#   pi_1 = 0.5,
-#   pi_2 = 0.7
-# )
-#
-# x$classical_power()
-# begin <- Sys.time()
-# x$generate_hybrid_power()
-# print(round(Sys.time()-begin, 2))
-# x$assurances()
-# x$plot_power(x$generate_hybrid_power())
+x <- HybridPowerProp$new(
+  parallel=T,
+  ns = seq(30, 90, 10),
+  n_prior=100,
+  prior = 'truncnorm',
+  prior_pi_1_mu = .6,
+  prior_pi_1_sd = .1,
+  prior_pi_2_mu = .5,
+  prior_pi_2_sd = .1,
+  c = 0.5,
+  n_MC = 100,
+  alt = 'two.sided',
+  exact=T,
+  pi_1 = 0.5,
+  pi_2 = 0.7
+)
+
+x$classical_power()
+x$hybrid_power()
+x$assurance()
+x$boxplot()

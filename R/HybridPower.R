@@ -59,17 +59,20 @@ HybridPower <- R6Class(
         stop('Alpha should be between 0 and 1.')
       if (alt != 'one.sided' & alt != 'two.sided')
         stop('Alternative hypothesis should be either \'one.sided\' or \'two.sided\'!')
-
-      if (length(assurance_props) == 1) {
-        if (!(is.numeric(assurance_props) & assurance_props <= 1 & assurance_props >= 0))
-          stop('Invalid assurance level')
-      }
-      else {
-        for (i in 1:length(assurance_props)) {
-          if (!(is.numeric(assurance_props[i]) & assurance_props[i] <= 1 & assurance_props[i] >= 0))
-            stop('Invalid assurance prop(s)')
+      if (!(is.null(assurance_props))) {
+        if (length(assurance_props) == 1) {
+          if (!(is.numeric(assurance_props) & assurance_props <= 1 & assurance_props >= 0))
+            stop('Invalid assurance level')
+        }
+        else {
+          for (i in 1:length(assurance_props)) {
+            if (!(is.numeric(assurance_props[i]) & (assurance_props[i] <= 1) & (assurance_props[i] >= 0)))
+              stop('Invalid assurance proportions')
+          }
         }
       }
+      else
+        assurance_props <- c(.25, .5, .75)
 
       self$parallel <- parallel
       self$ns <- sort(ns)
@@ -90,6 +93,51 @@ HybridPower <- R6Class(
       cat('Type of prior: ', self$prior, '\n')
       cat('Alternative Hypothesis: ', self$alt, '\n')
       cat('Level of significance: ', self$alpha, '\n')
+    },
+
+    assurance = function() {
+      if (is.null(self$output))
+        stop('Run hybrid_power() first')
+      return(summarise(group_by(self$output, n), assurance = mean(power), .groups='keep'))
+    },
+
+    assurance_level = function(props=self$assurance_props) {
+      if (is.null(self$output))
+        stop('Run hybrid_power() first')
+      if (is.null(props))
+        stop('Provide target proportions')
+      for (i in 1:length(props))
+        if (!(is.numeric(props[i])) | props[i] > 1 | props[i] < 0)
+          stop('Invalid proportion(s)')
+      props <- sort(props)
+      res <- summarise(group_by(self$output, n), quantile(power, probs=props[1]), .groups='keep')
+      if (length(props) > 1) {
+        for (i in 2:length(props)) {
+          res <- left_join(res, summarise(group_by(self$output, n), quantile(power, probs=props[i]), .groups='keep'), by='n')
+        }
+      }
+      col_names <- c('n', props)
+      colnames(res) <- col_names
+      return(res)
+    },
+
+    boxplot = function() {
+      if (is.null(self$output))
+        stop('Run hybrid_power() first')
+      p <- ggplot(self$output, aes(x=factor(n), y=power)) + geom_boxplot()
+      p <- p + xlab('Sample Size') + ylab('Power') + ggtitle('Distributions of Power')
+      p <- p + stat_summary(fun=mean, geom='point', shape=5, size=4)
+      p
+    }
+  ),
+
+  private = list(
+    melt_output = function() {
+      output <- data.frame(self$output)
+      colnames(output) = self$ns
+      self$output <- suppressMessages(
+        reshape2::melt(output, variable.name='n', value.name = 'power')
+      )
     }
   )
 )
