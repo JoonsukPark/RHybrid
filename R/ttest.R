@@ -32,6 +32,10 @@ HybridPowerTtest <- R6Class(
         n_prior=n_prior,
         n_MC=n_MC,
         prior=prior,
+        prior_mu = prior_mu,
+        prior_sigma = prior_sigma,
+        prior_lower = prior_lower,
+        prior_upper = prior_upper,
         alpha=alpha,
         alt=alt,
         assurance_props=assurance_props
@@ -53,25 +57,6 @@ HybridPowerTtest <- R6Class(
         stop('Invalid sd')
       if (!(is.null(prior)) & is.null(sd))
         stop('sd cannot be null for hybrid power calculation')
-
-      if (!(is.null(prior))) {
-        if (prior == 'normal') {
-          if (!(is.numeric(prior_mu)) | !(is.numeric(prior_sigma)))
-            stop('prior parameters must be numeric')
-          if (prior_sigma <= 0)
-            stop('prior_sigma must be positive')
-          self$prior_mu <- prior_mu
-          self$prior_sigma <- prior_sigma
-        }
-        else if (prior == 'uniform') {
-          if (!(is.numeric(prior_lower)) | !(is.numeric(prior_upper)))
-            stop('prior parameters must be numeric')
-          if (prior_lower > prior_upper)
-            stop('The lower bound cannot be greater than the upper bound')
-          self$prior_lower <- prior_lower
-          self$prior_upper <- prior_upper
-        }
-      }
     },
 
     print = function() {
@@ -109,8 +94,6 @@ HybridPowerTtest <- R6Class(
           )$power
         )
       }
-<<<<<<< HEAD
-=======
     },
 
     hybrid_power = function(cores=NULL) {
@@ -133,7 +116,6 @@ HybridPowerTtest <- R6Class(
         }
         return(self$output)
       }
->>>>>>> 642f19fa7a415fd4fafeeed7834d571453bd004b
     }
   ),
 

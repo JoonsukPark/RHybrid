@@ -9,11 +9,11 @@ HybridPowerSignTest <- R6Class(
     MC = F,
     hybrid_powers = NULL,
     prior_mu = NULL,
-    prior_sd = NULL,
+    prior_sigma = NULL,
     prior_lower = NULL,
     prior_upper = NULL,
-    prior_alpha = NULL,
-    prior_beta = NULL,
+    prior_a = NULL,
+    prior_b = NULL,
 
     initialize = function(
       parallel = FALSE,
@@ -26,20 +26,30 @@ HybridPowerSignTest <- R6Class(
       p_1 = NULL,
       alt = 'two.sided',
       MC=F,
-      prior_mu = 0.5,
-      prior_sd = 0.1,
-      prior_lower = 0,
-      prior_upper = 1,
-      prior_alpha = 1,
-      prior_beta = 1,
+      prior_mu = NULL,
+      prior_sigma = NULL,
+      prior_lower = NULL,
+      prior_upper = NULL,
+      prior_a = NULL,
+      prior_b = NULL,
       assurance_props = NULL
     ) {
+      if (!(is.null(prior))) {
+        if (!(prior %in% c('truncnorm','beta','uniform')))
+          stop('Prior must be one of truncnorm, beta or uniform')
+      }
       super$initialize(
         parallel = FALSE,
         ns=ns,
         n_prior=n_prior,
         n_MC=n_MC,
         prior=prior,
+        prior_mu = prior_mu,
+        prior_sigma = prior_sigma,
+        prior_lower = prior_lower,
+        prior_upper = prior_upper,
+        prior_a = prior_a,
+        prior_b = prior_b,
         alpha=alpha,
         alt=alt,
         assurance_props=assurance_props
@@ -50,36 +60,7 @@ HybridPowerSignTest <- R6Class(
         if (!(is.numeric(p_1)) | p_1 > 1 | p_1 < 0)
           stop('Invalid p_1')
       }
-      if (!(is.null(prior))) {
-        if (prior == 'beta') {
-          if (!(is_numeric(prior_alpha) & is_numeric(prior_beta)))
-            stop('Invalid input type for the priors')
-          if (prior_alpha <= 0)
-            stop('prior_alpha should be positive')
-          if (prior_beta <= 0)
-            stop('prior_beta should be positive')
-          self$prior_alpha <- prior_alpha
-          self$prior_beta <- prior_beta
-        }
-        if (prior == 'truncnorm') {
-          if (prior_mu <= 0 | prior_mu >= 1)
-            stop('prior_mu should be between 0 and 1')
-          if (prior_sd <= 0)
-            stop('prior sd should be positive')
-          self$prior_mu <- prior_mu
-          self$prior_sd <- prior_sd
-        }
-        else if (prior == 'uniform') {
-          if (prior_lower < 0 | prior_lower > 1)
-            stop('The lower bound should be between 0 and 1')
-          if (prior_upper < 0 | prior_upper > 1)
-            stop('The upper bound should be between 0 and 1')
-          if (prior_lower >= prior_upper)
-            stop('The lower bound should be smaller than the upper bound')
-          self$prior_lower <- prior_lower
-          self$prior_upper <- prior_upper
-        }
-      }
+
       self$p_0 <- p_0
       self$p_1 <- p_1
       self$MC <- MC
@@ -92,12 +73,12 @@ HybridPowerSignTest <- R6Class(
         cat('p under H_1: ', self$p_1, '\n')
       if (!(is.null(self$prior))) {
         if (self$prior == 'beta') {
-          cat('Prior alpha: ', self$prior_alpha, '\n')
-          cat('Prior beta: ', self$prior_beta, '\n\n')
+          cat('Prior alpha: ', self$prior_a, '\n')
+          cat('Prior beta: ', self$prior_b, '\n\n')
         }
         else if (self$prior == 'normal') {
           cat('Prior mean: ', self$prior_mu, '\n')
-          cat('Prior sd: ', self$prior_sd, '\n\n')
+          cat('Prior sd: ', self$prior_sigma, '\n\n')
         }
         else if (self$prior == 'uniform') {
           cat('Prior lower bound: ', self$prior_lower, '\n')
@@ -175,12 +156,12 @@ HybridPowerSignTest <- R6Class(
     draw_prior_es = function() {
       if (self$prior == 'beta') {
         return(
-          rbeta(self$n_prior, self$prior_alpha, self$prior_beta)
+          rbeta(self$n_prior, self$prior_a, self$prior_b)
         )
       }
       else if (self$prior == 'truncnorm') {
         return(
-          truncnorm::rtruncnorm(self$n_prior, mean=self$prior_mu, sd=self$prior_sd, a=0, b=1)
+          truncnorm::rtruncnorm(self$n_prior, mean=self$prior_mu, sd=self$prior_sigma, a=0, b=1)
         )
       }
       else if (self$prior == 'uniform') {

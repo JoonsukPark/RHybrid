@@ -21,7 +21,7 @@ HybridPowerTwowayANOVA <- R6Class(
       ns=c(),
       n_prior=1,
       n_MC=1,
-      prior='normal',
+      prior=NULL,
       alpha = 0.05,
       cellmeans=NULL,
       prior_mu = c(),
@@ -71,34 +71,38 @@ HybridPowerTwowayANOVA <- R6Class(
         if (!(design[i] %in% c('fe', 'rm')))
           stop('Design should be one of \'fe\' or \'rm\'!')
       }
-      if (self$prior == 'normal') {
-        if (!(is.matrix(prior_mu)) | !(length(dim(prior_mu)) == 2))
-          stop('Input a 2 by 2 matrix for prior means!')
-        if (sum(dim(prior_mu) == 1) > 0)
-          stop('At least 1 of the IVs has a single level')
-        if (!(is.matrix(prior_sigma)) | !(length(dim(prior_sigma)) == 2))
-          stop('Input a 2 by 2 matrix for prior standard deviations!')
-        if (sum(dim(prior_sigma) == 1) > 0)
-          stop('At least 1 of the IVs has a single level')
-        if (sum(prior_sigma <= 0) > 0)
-          stop('Prior standard deviations must be strictly positive')
-        if (sum((dim(prior_mu) == dim(prior_sigma)) == FALSE) > 0)
-          stop('Dimensions of prior means and sds should be identical')
+      if (!(is.null(prior))) {
+        self$prior <- prior
+        if (prior == 'normal') {
+          if (!(is.matrix(prior_mu)) | !(length(dim(prior_mu)) == 2))
+            stop('Input a 2-dimensional matrix for prior means!')
+          if (sum(dim(prior_mu) == 1) > 0)
+            stop('At least 1 of the IVs has a single level')
+          if (!(is.matrix(prior_sigma)) | !(length(dim(prior_sigma)) == 2))
+            stop('Input a 2-dimensional matrix for prior standard deviations!')
+          if (sum(dim(prior_sigma) == 1) > 0)
+            stop('At least 1 of the IVs has a single level')
+          if (sum(prior_sigma <= 0) > 0)
+            stop('Prior standard deviations must be strictly positive')
+          if (sum((dim(prior_mu) == dim(prior_sigma)) == FALSE) > 0)
+            stop('Dimensions of prior means and sds should be identical')
+        }
+        else if (prior == 'uniform') {
+          if (!(is.matrix(prior_lower)) | !(length(dim(prior_lower)) == 2))
+            stop('Input a 2-dimensional matrix for prior lower bounds!')
+          if (sum(dim(prior_lower) == 1) > 0)
+            stop('At least 1 of the IVs has a single level')
+          if (!(is.matrix(prior_upper)) | !(length(dim(prior_upper)) == 2))
+            stop('Input a 2-dimensional matrix for prior upper bounds!')
+          if (sum(dim(prior_upper) == 1) > 0)
+            stop('At least 1 of the IVs has a single level')
+          if (sum(prior_lower > prior_upper) > 0)
+            stop('At least one lower bound is greater than the upper bound')
+          if (sum((dim(prior_lower) == dim(prior_upper)) == FALSE) > 0)
+            stop('Dimensions of prior lower/upper bounds must be identical')
+        }
       }
-      else if (prior == 'uniform') {
-        if (!(is.matrix(prior_lower)) | !(length(dim(prior_lower)) == 2))
-          stop('Input a 2 by 2 matrix for prior lower bounds!')
-        if (sum(dim(prior_lower) == 1) > 0)
-          stop('At least 1 of the IVs has a single level')
-        if (!(is.matrix(prior_upper)) | !(length(dim(prior_upper)) == 2))
-          stop('Input a 2 by 2 matrix for prior upper bounds!')
-        if (sum(dim(prior_upper) == 1) > 0)
-          stop('At least 1 of the IVs has a single level')
-        if (sum(prior_lower > prior_upper) > 0)
-          stop('At least one lower bound is greater than the upper bound')
-        if (sum((dim(prior_lower) == dim(prior_upper)) == FALSE) > 0)
-          stop('Dimensions of prior lower/upper bounds must be identical')
-      }
+
       if (!(design[1] == 'fe' & design[2] == 'fe')) {
         if (length(rho) != self$rm_dim)
           stop('length of rho should match that of repeated measure factors')
@@ -118,48 +122,54 @@ HybridPowerTwowayANOVA <- R6Class(
       self$rho <- rho
       self$sd <- sd
       self$epsilon <- epsilon
-
-      if (prior == 'normal') {
-        self$prior_mu <- prior_mu
-        self$prior_sigma <- prior_sigma
-        dims <- dim(prior_mu)
-        self$k <- dims[self$fe_factor]
-        self$m <- dims[self$rm_factor]
-      }
-      else if (prior == 'uniform') {
-        self$prior_lower <- prior_lower
-        self$prior_upper <- prior_upper
-        dims <- dim(prior_lower)
-        self$k <- dims[self$fe_factor]
-        self$m <- dims[self$rm_factor]
+      if (!(is.null(prior))) {
+        if (prior == 'normal') {
+          self$prior_mu <- prior_mu
+          self$prior_sigma <- prior_sigma
+          dims <- dim(prior_mu)
+          self$k <- dims[self$fe_factor]
+          self$m <- dims[self$rm_factor]
+        }
+        else if (prior == 'uniform') {
+          self$prior_lower <- prior_lower
+          self$prior_upper <- prior_upper
+          dims <- dim(prior_lower)
+          self$k <- dims[self$fe_factor]
+          self$m <- dims[self$rm_factor]
+        }
       }
     },
 
     print = function() {
       super$print()
-      if (self$prior == 'normal') {
-        cat('\nPrior means: \n\n')
-        cat(self$prior_mu[1,], '\n')
-        cat(self$prior_mu[2,], '\n\n')
-        cat('Prior standard deviations: \n\n')
-        cat(self$prior_sigma[1,], '\n')
-        cat(self$prior_sigma[2,], '\n')
-        cat('Implied f values: ',
-            private$compute_f(self$prior_mu, 1), ' ',
-            private$compute_f(self$prior_mu, 2), '\n\n'
-        )
+      if (!(is.null(self$cellmeans))) {
+        cat('Cell means: ', self$cellmeans, '\n\n')
       }
-      else if (self$prior == 'uniform') {
-        cat('\nPrior lower bounds: \n\n')
-        cat(self$prior_lower[1,], '\n')
-        cat(self$prior_lower[2,], '\n\n')
-        cat('Prior upper bounds: \n\n')
-        cat(self$prior_upper[1,], '\n')
-        cat(self$prior_upper[2,], '\n\n')
-        cat('Implied f values: ',
-            private$compute_f((self$prior_lower + self$prior_upper)/2, 1), ' ',
-            private$compute_f((self$prior_lower + self$prior_upper)/2, 2), '\n\n'
-        )
+      if (!(is.null(self$prior))) {
+        if (self$prior == 'normal') {
+          cat('\nPrior means: \n\n')
+          cat(self$prior_mu[1,], '\n')
+          cat(self$prior_mu[2,], '\n\n')
+          cat('Prior standard deviations: \n\n')
+          cat(self$prior_sigma[1,], '\n')
+          cat(self$prior_sigma[2,], '\n')
+          cat('Implied f values: ',
+              private$compute_f(self$prior_mu, 1), ' ',
+              private$compute_f(self$prior_mu, 2), '\n\n'
+          )
+        }
+        else if (self$prior == 'uniform') {
+          cat('\nPrior lower bounds: \n\n')
+          cat(self$prior_lower[1,], '\n')
+          cat(self$prior_lower[2,], '\n\n')
+          cat('Prior upper bounds: \n\n')
+          cat(self$prior_upper[1,], '\n')
+          cat(self$prior_upper[2,], '\n\n')
+          cat('Implied f values: ',
+              private$compute_f((self$prior_lower + self$prior_upper)/2, 1), ' ',
+              private$compute_f((self$prior_lower + self$prior_upper)/2, 2), '\n\n'
+          )
+        }
       }
       cat('Test type: Two-way ANOVA\n')
       cat('Study design: ', self$design, '\n')
@@ -262,7 +272,6 @@ HybridPowerTwowayANOVA <- R6Class(
       }
       p <- p + geom_boxplot()
       p <- p + xlab('Sample Size') + ylab('Power') + ggtitle('Distributions of Power')
-      p <- p + stat_summary(fun=mean, geom="point", shape=5, size=4)
       p
     },
 

@@ -124,7 +124,6 @@
 # power_both$assurance_level()
 # power_both$boxplot()
 #
-<<<<<<< HEAD
 # ############################
 # ## Example 3: 2-way ANOVA ##
 # ############################
@@ -144,6 +143,7 @@
 #   ns = c(10, 20, 30, 40),
 #   n_prior=10,
 #   design = c('fe', 'rm'),
+#   prior = 'normal',
 #   prior_mu = matrix(c(2, 2.2, 2, 1.8, 2, 2.4), nrow=3),
 #   prior_sigma = matrix(rep(.5, 6), nrow=3),
 #   sd = 2,
@@ -155,44 +155,10 @@
 # x_hybrid$boxplot()
 # x_hybrid$assurance()
 # x_hybrid$assurance_level()
-# Classical power analysis
 #
-# ######################################
-# ## Example 4: bivariate correlation ##
-=======
-# ######################################
-# ## Example 3: bivariate correlation ##
->>>>>>> 642f19fa7a415fd4fafeeed7834d571453bd004b
-# ######################################
-#
-# Classical power analysis (minimal example)
-#
-# x_classical <- HybridPowerCorrelation$new(
-#   ns = seq(10, 90, 10),
-#   rho = .7,
-#   alt = 'two.sided'
-# )
-#
-# x_classical$classical_power()
-#
-# # Hybrid power analysis
-#
-# x_hybrid <- HybridPowerCorrelation$new(
-#   parallel = T,
-#   ns = seq(10, 90, 10),
-#   n_prior=1000,
-#   rho = .5,
-#   prior_mu = .3,
-#   prior_sd = .1,
-#   prior = 'truncnorm',
-#   alt = 'two.sided'
-# )
-#
-# x_hybrid$classical_power()
-# x_hybrid$hybrid_power()
-# x_hybrid$boxplot()
-# x_hybrid$assurance()
-# x_hybrid$assurance_level()
+# #####################################
+# # Example 4: bivariate correlation ##
+# #####################################
 #
 # # Classical power analysis (minimal example)
 #
@@ -201,7 +167,6 @@
 #   rho = .7,
 #   alt = 'two.sided'
 # )
-#
 # x_classical$classical_power()
 #
 # # Hybrid power analysis
@@ -212,10 +177,9 @@
 #   n_prior=1000,
 #   rho = .5,
 #   prior_mu = .3,
-#   prior_sd = .1,
+#   prior_sigma = .1,
 #   prior = 'truncnorm',
-#   alt = 'two.sided',
-#   assurance_props = seq(.2, .5, .8)
+#   alt = 'two.sided'
 # )
 #
 # x_hybrid$classical_power()
@@ -225,11 +189,7 @@
 # x_hybrid$assurance_level()
 #
 # #################################
-<<<<<<< HEAD
 # ## Example 5: Proportions test ##
-=======
-# ## Example 4: Proportions test ##
->>>>>>> 642f19fa7a415fd4fafeeed7834d571453bd004b
 # #################################
 #
 # x <- HybridPowerProp$new(
@@ -253,7 +213,6 @@
 # x$hybrid_power()
 # x$assurance()
 # x$boxplot()
-<<<<<<< HEAD
 #
 # ##########################
 # ## Example 6: Sign test ##
@@ -268,6 +227,8 @@
 #
 # x_hybrid <- HybridPowerSignTest$new(
 #   prior='uniform',
+#   prior_lower = 0.1,
+#   prior_upper = 0.3,
 #   parallel = T,
 #   ns = seq(10, 90, 10),
 #   n_prior=1000,
@@ -300,7 +261,7 @@
 #   n_prior=1000,
 #   prior = 'truncnorm',
 #   prior_mu = .2,
-#   prior_sd = .2,
+#   prior_sigma = .2,
 #   alt = 'two.sided'
 # )
 #
@@ -336,5 +297,3 @@
 # x_hybrid$hybrid_power()
 # x_hybrid$assurance()
 # x_hybrid$boxplot()
-=======
->>>>>>> 642f19fa7a415fd4fafeeed7834d571453bd004b

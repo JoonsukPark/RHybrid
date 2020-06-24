@@ -4,12 +4,6 @@ HybridPowerCorrelation <- R6Class(
   'HybridPowerCorrelation',
   inherit = HybridPower,
   public = list(
-    hybrid_powers = NULL,
-    prior = NULL,
-    prior_a = NULL,
-    prior_b = NULL,
-    prior_mu = NULL,
-    prior_sd = NULL,
     rho = NULL,
 
     initialize = function(
@@ -23,7 +17,7 @@ HybridPowerCorrelation <- R6Class(
       prior_a = NULL,
       prior_b = NULL,
       prior_mu = NULL,
-      prior_sd = NULL,
+      prior_sigma = NULL,
       rho = NULL,
       assurance_props=NULL
     ) {
@@ -33,30 +27,14 @@ HybridPowerCorrelation <- R6Class(
         n_prior = n_prior,
         n_MC = n_MC,
         prior = prior,
+        prior_a = prior_a,
+        prior_b = prior_b,
+        prior_mu = prior_mu,
+        prior_sigma = prior_sigma,
         alpha = alpha,
         alt = alt,
         assurance_props = assurance_props
       )
-      if (!(is.null(prior))) {
-        if (prior == 'beta') {
-          if (is.null(prior_a) | is.null(prior_a))
-            stop('Provide prior_a and prior_b first')
-          if (prior_a <= 0 | prior_b <= 0)
-            stop('Parameters for the beta prior must be positive')
-          self$prior_a <- prior_a
-          self$prior_b <- prior_b
-        }
-        else if (prior == 'normal' | prior == 'truncnorm') {
-          if (is.null(prior_mu) | is.null(prior_sd))
-            stop('Provide prior_mu and prior_sd first')
-          if (prior_sd <= 0)
-            stop('Prior standard deviation must be positive')
-          if (prior_mu <= -1 | prior_mu >= 1)
-            stop('Prior mean of correlation coefficients must be between -1 and 1')
-          self$prior_mu <- prior_mu
-          self$prior_sd <- prior_sd
-        }
-      }
       if (!(is.null(rho))) {
         if (!(is.numeric(rho)))
           stop('rho must be numeric')
@@ -77,7 +55,7 @@ HybridPowerCorrelation <- R6Class(
         }
         else if (self$prior == 'normal') {
           cat('Prior_mu: ', self$prior_mu, '\n')
-          cat('Prior_sd: ', self$prior_sd, '\n')
+          cat('prior_sigma: ', self$prior_sigma, '\n')
         }
       }
     },
@@ -104,23 +82,6 @@ HybridPowerCorrelation <- R6Class(
           1 - pnorm(crit_r_z, r_z, 1/sqrt(n-3))
         )
       }
-<<<<<<< HEAD
-=======
-    },
-
-    hybrid_power = function(cores=NULL) {
-      if (self$parallel) {
-        if (is.null(cores)) cores <- parallel::detectCores()
-        self$output <- parallel::mclapply(self$ns, private$generate_hybrid_power)
-        private$melt_output()
-        return(self$output)
-      }
-      else {
-        self$output <- lapply(self$ns, private$hybrid_power)
-        private$melt_output()
-        return(self$output)
-      }
->>>>>>> 642f19fa7a415fd4fafeeed7834d571453bd004b
     }
   ),
 
@@ -136,7 +97,7 @@ HybridPowerCorrelation <- R6Class(
           truncnorm::rtruncnorm(
             self$n_prior,
             mean = self$prior_mu,
-            sd = self$prior_sd,
+            sd = self$prior_sigma,
             a = -1,
             b = 1
           )

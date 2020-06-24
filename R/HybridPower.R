@@ -24,6 +24,8 @@ HybridPower <- R6Class(
     prior_sigma = NULL,
     prior_lower = NULL,
     prior_upper = NULL,
+    prior_a = NULL,
+    prior_b = NULL,
     assurance_props = NULL,
 
     initialize = function(
@@ -32,11 +34,87 @@ HybridPower <- R6Class(
       n_prior = 1,
       n_MC = 1,
       prior = NULL,
+      prior_mu = NULL,
+      prior_sigma = NULL,
+      prior_lower = NULL,
+      prior_upper = NULL,
+      prior_a = NULL,
+      prior_b = NULL,
       alpha = 0.05,
       alt = 'two.sided',
-      assurance_props = NULL
+      assurance_props = NULL,
+      validate = T
     ) {
       # Validate inputs
+
+      if (!(is.null(prior))) {
+        if (
+          !is.character(prior) |
+          length(prior) != 1 |
+          !(prior %in% c('normal', 'uniform', 'beta', 'truncnorm', 'dirichlet'))
+        )
+          stop('Invalid prior!')
+        if (validate) {
+          if (prior == 'normal' | prior == 'truncnorm') {
+            if (is.null(prior_mu))
+              stop('prior_mu is missing')
+            if (is.null(prior_sigma))
+              stop('prior_sigma is missing')
+            if (!(is.numeric(prior_mu)) | !(is.numeric(prior_sigma)))
+              stop('prior parameters must be numeric')
+            if (length(prior_sigma) == 1) {
+              if (prior_sigma < 0)
+                stop('prior_sigma must be nonnegative')
+            }
+            else {
+              for (i in 1:length(prior_sigma)) {
+                if (prior_sigma[i] < 0)
+                  stop('All prior_sigmas must be nonnegative')
+              }
+            }
+            self$prior_mu <- prior_mu
+            self$prior_sigma <- prior_sigma
+          }
+          else if (prior == 'uniform') {
+            if (is.null(prior_lower))
+              stop('prior_lower is missing')
+            if (is.null(prior_upper))
+              stop('prior_upper is missing')
+            if (!(is.numeric(prior_lower)) | !(is.numeric(prior_upper)))
+              stop('prior parameters must be numeric')
+            if (prior_lower > prior_upper)
+              stop('The lower bound cannot be greater than the upper bound')
+            self$prior_lower <- prior_lower
+            self$prior_upper <- prior_upper
+          }
+          else if (prior == 'beta') {
+            if (is.null(prior_a))
+              stop('prior_a is missing')
+            if (is.null(prior_b))
+              stop('prior_b is missing')
+            if (is.null(prior_a) | is.null(prior_b))
+              stop('Provide prior_a and prior_b first')
+            if (prior_a <= 0 | prior_b <= 0)
+              stop('Parameters for the beta prior must be positive')
+            self$prior_a <- prior_a
+            self$prior_b <- prior_b
+          }
+          else if (prior == 'dirichlet') {
+            if (is.null(prior_a))
+              stop('prior_a is missing')
+            for (i in 1:length(prior_a)) {
+              if (!(is_numeric(prior_a[i])))
+                stop('Invalid input type for the priors')
+              if (length(prior_a[i]) != 1)
+                stop('prior_a should be a scalar')
+              if (prior_a[i] <= 0)
+                stop('Elements of prior_a must be positive')
+            }
+            self$prior_a <- prior_a
+          }
+        }
+      }
+
       if (length(ns) == 0) stop('Input sample sizes!')
       else {
         for (i in 1:length(ns)) {
@@ -48,14 +126,6 @@ HybridPower <- R6Class(
         stop('Invalid # draws from prior!')
       if (n_MC %% 1 != 0 | n_MC <= 0)
         stop('Invalid # Monte Carlo simulations!')
-      if (!(is.null(prior))) {
-        if (
-          !is.character(prior) |
-          length(prior) != 1 |
-          !(prior %in% c('normal', 'uniform', 'beta', 'truncnorm', 'dirichlet'))
-        )
-          stop('Invalid prior!')
-      }
       if (alpha <= 0 | alpha >= 1)
         stop('Alpha should be between 0 and 1.')
       if (alt != 'one.sided' & alt != 'two.sided')
@@ -122,7 +192,6 @@ HybridPower <- R6Class(
       return(res)
     },
 
-<<<<<<< HEAD
     hybrid_power = function(cores=NULL) {
       if (self$parallel) {
         if (is.null(cores)) cores <- detectCores()
@@ -140,8 +209,6 @@ HybridPower <- R6Class(
       return(self$output)
     },
 
-=======
->>>>>>> 642f19fa7a415fd4fafeeed7834d571453bd004b
     boxplot = function() {
       if (is.null(self$output))
         stop('Run hybrid_power() first')

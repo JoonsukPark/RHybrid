@@ -20,10 +20,10 @@ HybridPowerOnewayANOVA <- R6Class(
       prior=NULL,
       alpha = 0.05,
       mu = NULL,
-      prior_mu = c(),
-      prior_sigma = c(),
-      prior_lower = c(),
-      prior_upper = c(),
+      prior_mu = NULL,
+      prior_sigma = NULL,
+      prior_lower = NULL,
+      prior_upper = NULL,
       sd = 1,
       design = 'fe',
       rho = 0,
@@ -37,11 +37,18 @@ HybridPowerOnewayANOVA <- R6Class(
         n_prior=n_prior,
         n_MC=n_MC,
         prior=prior,
+        prior_mu = prior_mu,
+        prior_sigma = prior_sigma,
+        prior_lower = prior_lower,
+        prior_upper = prior_upper,
         alpha=alpha,
         alt=alt,
         assurance_props=assurance_props
       )
-
+      if (!is.null(prior)) {
+        if (!(prior %in% c('normal','uniform')))
+          stop('Invalid type of prior')
+      }
       if (!(design %in% c('fe', 'rm')))
         stop('Design should be one of \'fe\' or \'rm\'!')
       if (rho >= 1 | rho < 0)
@@ -56,30 +63,9 @@ HybridPowerOnewayANOVA <- R6Class(
       self$epsilon <- epsilon
 
       if (!(is.null(prior))) {
-        if (prior == 'normal') {
-          if (length(prior_mu) == 1)
-            stop('Specify more than 2 groups\' prior means')
-          if (sum(prior_sigma < 0) > 0)
-            stop('Prior standard deviations must be nonnegative')
-          if (length(prior_mu) == 1 | (length(prior_mu) > 1 & length(prior_sigma) > 1)) {
-            if (length(prior_mu) != length(prior_sigma))
-              stop('Lengths of prior means and sds should be identical')
-          }
-          else
-            prior_sigma <- rep(prior_sigma, length(prior_mu))
-          self$prior_mu <- prior_mu
-          self$prior_sigma <- prior_sigma
+        if (prior == 'normal')
           self$k <- length(prior_mu)
-        }
         else if (prior == 'uniform') {
-          if (length(prior_lower) == 1)
-            stop('Specify more than 2 groups\' prior means')
-          if (length(prior_upper) == 1)
-            stop('Specify more than 2 groups\' prior means')
-          if (length(prior_lower) != length(prior_upper))
-            stop('Lengths of prior lower and upper bounds should be identical')
-          self$prior_lower <- prior_lower
-          self$prior_upper <- prior_upper
           self$k <- length(prior_lower)
         }
       }
@@ -90,13 +76,15 @@ HybridPowerOnewayANOVA <- R6Class(
     print = function() {
       super$print()
       cat('Fixed means for classical power analysis: ', self$mu, '\n')
-      if (self$prior == 'normal') {
-        cat('Prior means: ', self$prior_mu, '\n')
-        cat('Prior sds: ', self$prior_sigma, '\n\n')
-      }
-      else if (self$prior == 'uniform') {
-        cat('Prior lower bounds: ', self$prior_lower, '\n')
-        cat('Prior upper bounds: ', self$prior_upper, '\n\n')
+      if (!(is.null(self$prior))) {
+        if (self$prior == 'normal') {
+          cat('Prior means: ', self$prior_mu, '\n')
+          cat('Prior sds: ', self$prior_sigma, '\n\n')
+        }
+        else if (self$prior == 'uniform') {
+          cat('Prior lower bounds: ', self$prior_lower, '\n')
+          cat('Prior upper bounds: ', self$prior_upper, '\n\n')
+        }
       }
       cat('Test type: One-way ANOVA\n')
       cat('Study design: ', self$design, '\n')
@@ -125,26 +113,6 @@ HybridPowerOnewayANOVA <- R6Class(
         }
         return(private$compute_f_prob(f2, ncp, df1, df2))
       }
-<<<<<<< HEAD
-=======
-    },
-
-    hybrid_power = function(cores=NULL) {
-      if (self$parallel) {
-        if (!(cores)) cores <- detectCores()
-        self$output <- parallel::mclapply(self$ns, private$generate_hybrid_power)
-        private$melt_output()
-      }
-      else {
-        res <- list()
-        for (i in 1:length(self$ns)) {
-          res[[i]] <- private$generate_hybrid_power(self$ns[i])
-        }
-        self$output <- res
-        private$melt_output()
-      }
-      return(self$output)
->>>>>>> 642f19fa7a415fd4fafeeed7834d571453bd004b
     }
   ),
 

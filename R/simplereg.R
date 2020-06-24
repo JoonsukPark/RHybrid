@@ -5,13 +5,6 @@ HybridPowerSLR <- R6Class(
   inherit = HybridPower,
   public = list(
     r2 = NULL,
-    hybrid_powers = NULL,
-    prior_alpha = NULL,
-    prior_beta = NULL,
-    prior_upper = NULL,
-    prior_lower = NULL,
-    prior_mu = NULL,
-    prior_sd = NULL,
 
     initialize = function(
       parallel = FALSE,
@@ -22,20 +15,30 @@ HybridPowerSLR <- R6Class(
       alpha = 0.05,
       alt = 'two.sided',
       r2 = NULL,
-      prior_alpha = NULL,
-      prior_beta = NULL,
+      prior_a = NULL,
+      prior_b = NULL,
       prior_upper = NULL,
       prior_lower = NULL,
       prior_mu = NULL,
-      prior_sd = NULL,
+      prior_sigma = NULL,
       assurance_props = NULL
     ) {
+      if (!(is.null(prior))) {
+        if (!(prior %in% c('truncnorm','beta','uniform')))
+          stop('Prior must be one of truncnorm, beta or uniform')
+      }
       super$initialize(
         parallel = FALSE,
         ns=ns,
         n_prior=n_prior,
         n_MC=n_MC,
         prior=prior,
+        prior_a = prior_a,
+        prior_b = prior_b,
+        prior_upper = prior_upper,
+        prior_lower = prior_lower,
+        prior_mu = prior_mu,
+        prior_sigma = prior_sigma,
         alpha=alpha,
         alt=alt,
         assurance_props=assurance_props
@@ -46,47 +49,14 @@ HybridPowerSLR <- R6Class(
         else
           self$r2 <- r2
       }
-      if (!(is.null(prior))) {
-        if (prior == 'beta') {
-          if (!(is_numeric(prior_pi_1_alpha) &
-                is_numeric(prior_pi_1_beta)))
-            stop('Invalid input type for the priors')
-          if (prior_alpha <= 0)
-            stop('prior_alpha should be positive')
-          if (prior_beta <= 0)
-            stop('prior_beta should be positive')
-          self$prior_alpha <- prior_alpha
-          self$prior_beta <- prior_beta
-        }
-        else if (prior == 'uniform') {
-          if ((prior_pi_1_lower > prior_pi_1_upper) |
-               prior_pi_1_lower < 0 | prior_pi_1_upper > 1
-              )
-            stop('Invalid limits for the uniform prior(s)')
-          self$prior_lower <- prior_lower
-          self$prior_upper <- prior_upper
-        }
-        else if (prior == 'truncnorm') {
-          if (!(is_numeric(prior_mu) &
-                is_numeric(prior_sd))
-          )
-            stop('Invalid input type for the priors')
-          if (prior_mu <= 0 | prior_mu >= 1)
-            stop('Prior means must be between 0 and 1')
-          if (prior_sd <= 0)
-            stop('Prior standard deviations must be positive')
-          self$prior_mu <- prior_mu
-          self$prior_sd <- prior_sd
-        }
-      }
     },
 
     print = function() {
       super$print()
       cat('R-squared under H_1: ', self$r2, '\n')
       if (self$prior == 'beta') {
-        cat('Alpha: ', self$prior_alpha, '\n')
-        cat('Beta: ', self$prior_beta, '\n')
+        cat('Alpha: ', self$prior_a, '\n')
+        cat('Beta: ', self$prior_b, '\n')
       }
       else if (self$prior == 'uniform') {
         cat('Lower (r2): ', self$prior_lower, '\n')
@@ -94,7 +64,7 @@ HybridPowerSLR <- R6Class(
       }
       else if (self$prior == 'truncnorm') {
         cat('Prior mean (r2): ', self$prior_mu, '\n')
-        cat('Prior sd (r2): ', self$prior_sd, '\n')
+        cat('Prior sd (r2): ', self$prior_sigma, '\n')
       }
       cat('Study design: Simple Regression\n')
     },
@@ -107,7 +77,7 @@ HybridPowerSLR <- R6Class(
   private = list(
     draw_prior_es = function() {
       if (self$prior == 'beta') {
-        return(rbeta(self$n_prior, self$prior_alpha, self$prior_beta))
+        return(rbeta(self$n_prior, self$prior_a, self$prior_b))
       }
       else if (self$prior == 'uniform') {
         return(runif(self$n_prior, self$prior_lower, self$prior_upper))
@@ -119,7 +89,7 @@ HybridPowerSLR <- R6Class(
             a=0,
             b=1,
             mean=self$prior_mu,
-            sd=self$prior_sd
+            sd=self$prior_sigma
           )
         )
       }
