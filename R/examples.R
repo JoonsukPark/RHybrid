@@ -5,20 +5,22 @@
 # #######################
 #
 # # Classical power analysis
-# power_classical <- hp_ttest$new(
+# x_classical <- hp_ttest$new(
 #   ns = seq(10, 90, 10),
 #   d = 0.5,
 #   alpha=.01
 # )
-# power_classical$classical_power()
-# power_classical$assurance_level()
+# x_classical$classical_power()
+#
+# # This should fail
+# x_classical$assurance_level()
 #
 # # B-C hybrid power analysis
 #
 # # Note that quantiles is now another input to the initializer (default is 0.5, which is the median)
 # # Also note that you can change the significance level (default is still alpha=0.05)
 # # Now the default quantiles are those from Tukey (0, .25, .5, .75, 1)
-# power_hybrid <- hp_ttest$new(
+# x_hybrid <- hp_ttest$new(
 #   ns = seq(10, 90, 10),
 #   n_prior=1000,
 #   prior = 'normal',
@@ -29,10 +31,10 @@
 # )
 #
 # # This should generate an error because you haven't specified the 'd' here.
-# power_hybrid$classical_power()
+# x_hybrid$classical_power()
 #
 # # Now it will be OK
-# power_hybrid <- hp_ttest$new(
+# x_hybrid <- hp_ttest$new(
 #   ns = seq(10, 90, 10),
 #   n_prior=1000,
 #   prior = 'normal',
@@ -42,37 +44,37 @@
 #   d = 0.1,
 #   assurance_level_props = c(.5, .8)
 # )
-# power_hybrid$classical_power()
+# x_hybrid$classical_power()
 #
-# # This saves the generated hybrid power values at self$output (in this case, power_hybrid$output)
-# power_hybrid$hybrid_power()
+# # This saves the generated hybrid power values at self$output (in this case, x_hybrid$output)
+# x_hybrid$hybrid_power()
 #
 # # You can also do this because hybrid_power() saves the power values as well as returning them as output values
-# powers <- power_hybrid$hybrid_power()
+# powers <- x_hybrid$hybrid_power()
 #
 # # You can retrieve the saved power values like this
-# power_hybrid$output
+# x_hybrid$output
 #
 # # These must be run after running hybrid_power()
 # # because they assume that power values are already saved in self$output
 # # Otherwise, they would raise an error.
 #
-# power_hybrid$assurance()
-# power_hybrid$boxplot()
-# power_hybrid$assurance()
-# power_hybrid$power_quantiles()
-# power_hybrid$assurance_level()
+# x_hybrid$assurance()
+# x_hybrid$boxplot()
+# x_hybrid$assurance()
+# x_hybrid$power_quantiles()
+# x_hybrid$assurance_level()
 #
 # # Also you can change the internal variables whenever you want
-# power_hybrid$alpha <- 0.05
-# power_hybrid$classical_power()
-# power_hybrid$hybrid_power()
-# power_hybrid$output
-# power_hybrid$assurance()
-# power_hybrid$boxplot()
-# power_hybrid$assurance()
-# power_hybrid$power_quantiles()
-# power_hybrid$assurance_level()
+# x_hybrid$alpha <- 0.05
+# x_hybrid$classical_power()
+# x_hybrid$hybrid_power()
+# x_hybrid$output
+# x_hybrid$assurance()
+# x_hybrid$boxplot()
+# x_hybrid$assurance()
+# x_hybrid$power_quantiles()
+# x_hybrid$assurance_level()
 #
 #
 # ############################
@@ -80,20 +82,20 @@
 # ############################
 #
 # # Classical power analysis
-# power_classical <- hp_oneway_anova$new(
+# x_classical <- hp_oneway_anova$new(
 #   ns = seq(10, 90, 10),
 #   mu = c(2, 2.2),
 #   sd = 1,
 #   design='fe'
 # )
-# power_classical$classical_power()
+# x_classical$classical_power()
 #
 # # If you provide the value of f^2, it will compute power based on that
 # # Otherwise, it will compute power based on the provided cell means
-# power_classical$classical_power(f2=0.5)
+# x_classical$classical_power(f2=0.5)
 #
 # # B-C hybrid power analysis
-# power_hybrid <- hp_oneway_anova$new(
+# x_hybrid <- hp_oneway_anova$new(
 #   ns = seq(10, 90, 10),
 #   prior_mu = c(2, 2.5),
 #   prior_sigma = c(0, .2),
@@ -104,14 +106,14 @@
 # )
 #
 # # This should generate an error
-# power_hybrid$classical_power()
-# power_hybrid$hybrid_power()
-# power_hybrid$assurance()
-# power_hybrid$power_quantiles()
-# power_hybrid$boxplot()
+# x_hybrid$classical_power()
+# x_hybrid$hybrid_power()
+# x_hybrid$assurance()
+# x_hybrid$power_quantiles()
+# x_hybrid$boxplot()
 #
 # # Now it should be OK
-# power_both <- hp_oneway_anova$new(
+# x_hybrid <- hp_oneway_anova$new(
 #   ns = seq(10, 90, 10),
 #   mu = c(2, 2.2),
 #   prior_mu = c(2, 2.5),
@@ -120,13 +122,15 @@
 #   design='fe',
 #   prior = 'normal',
 #   n_prior = 1000,
-#   quantiles = c(.2, .5, .8)
+#   quantiles = c(.2, .5, .8),
+#   assurance_level_props = c(.5, .8)
 # )
 #
-# power_both$classical_power()
-# power_both$hybrid_power()
-# power_both$power_quantiles()
-# power_both$boxplot()
+# x_hybrid$classical_power()
+# x_hybrid$hybrid_power()
+# x_hybrid$power_quantiles()
+# x_hybrid$boxplot()
+# x_hybrid$assurance_level()
 #
 # ############################
 # ## Example 3: 2-way ANOVA ##
@@ -159,6 +163,7 @@
 # x_hybrid$boxplot()
 # x_hybrid$assurance()
 # x_hybrid$power_quantiles()
+# x_hybrid$assurance_level()
 #
 # #####################################
 # # Example 4: bivariate correlation ##
@@ -183,7 +188,8 @@
 #   prior_mu = .3,
 #   prior_sigma = .1,
 #   prior = 'truncnorm',
-#   alt = 'two.sided'
+#   alt = 'two.sided',
+#   assurance_level_props = c(.5, .8)
 # )
 #
 # x_hybrid$classical_power()
@@ -191,6 +197,7 @@
 # x_hybrid$boxplot()
 # x_hybrid$assurance()
 # x_hybrid$power_quantiles()
+# x_hybrid$assurance_level()
 #
 # #################################
 # ## Example 5: Proportions test ##
@@ -210,13 +217,15 @@
 #   alt = 'two.sided',
 #   exact=T,
 #   pi_1 = 0.5,
-#   pi_2 = 0.7
+#   pi_2 = 0.7,
+#   assurance_level_props = c(.5, .8)
 # )
 #
 # x$classical_power()
 # x$hybrid_power()
 # x$assurance()
 # x$boxplot()
+# x$assurance_level()
 #
 # ##########################
 # ## Example 6: Sign test ##
@@ -240,13 +249,15 @@
 #   p_0 = 0.5,
 #   p_1 = 0.6,
 #   MC=F,
-#   quantiles = c(.2, .5, .8)
+#   quantiles = c(.2, .5, .8),
+#   assurance_level_props = c(.5, .8)
 # )
 #
 # x_hybrid$classical_power()
 # x_hybrid$hybrid_power()
 # x_hybrid$assurance()
 # x_hybrid$boxplot()
+# x_hybrid$assurance_level()
 #
 # #########################################
 # ## Example 7: Simple linear regression ##
@@ -266,13 +277,15 @@
 #   prior = 'truncnorm',
 #   prior_mu = .2,
 #   prior_sigma = .2,
-#   alt = 'two.sided'
+#   alt = 'two.sided',
+#   assurance_level_props = c(.5, .8)
 # )
 #
 # x_hybrid$classical_power()
 # x_hybrid$hybrid_power()
 # x_hybrid$assurance()
 # x_hybrid$boxplot()
+# x_hybrid$assurance_level()
 #
 # #######################################
 # ## Example 8: Chi-square test of GOF ##
@@ -294,7 +307,8 @@
 #   prior_a = 1,
 #   prior_b = 2,
 #   p_0 = c(1/2, 1/2),
-#   p_1 = c(1/3, 2/3)
+#   p_1 = c(1/3, 2/3),
+#   assurance_level_props = c(.5, .8)
 # )
 #
 # x_hybrid$classical_power()
@@ -302,3 +316,4 @@
 # x_hybrid$assurance()
 # x_hybrid$boxplot()
 # x_hybrid$power_quantiles()
+# x_hybrid$assurance_level()
