@@ -1,7 +1,7 @@
 source('R/HybridPower.R')
 
-HybridPowerChisqTest <- R6Class(
-  'HybridPowerChisqTest',
+hp_chisq <- R6Class(
+  'hp_chisq',
   inherit = HybridPower,
   public = list(
     p_0 = NULL,
@@ -30,7 +30,8 @@ HybridPowerChisqTest <- R6Class(
       prior_upper = NULL,
       prior_a = NULL,
       prior_b = NULL,
-      assurance_props = NULL
+      quantiles = NULL,
+      assurance_level_props = NULL
     ) {
       super$initialize(
         parallel = FALSE,
@@ -46,7 +47,8 @@ HybridPowerChisqTest <- R6Class(
         prior_b = prior_b,
         alpha=alpha,
         alt=alt,
-        assurance_props=assurance_props
+        quantiles=quantiles,
+        assurance_level_props=assurance_level_props
       )
       if (sum(p_0) != 1)
         stop('p_0 must sum to 1')

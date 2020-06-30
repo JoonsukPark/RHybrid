@@ -1,7 +1,7 @@
 source('R/HybridPower.R')
 
-HybridPowerSLR <- R6Class(
-  'HybridPowerSLR',
+hp_slr <- R6Class(
+  'hp_slr',
   inherit = HybridPower,
   public = list(
     r2 = NULL,
@@ -21,7 +21,8 @@ HybridPowerSLR <- R6Class(
       prior_lower = NULL,
       prior_mu = NULL,
       prior_sigma = NULL,
-      assurance_props = NULL
+      quantiles = NULL,
+      assurance_level_props=NULL
     ) {
       if (!(is.null(prior))) {
         if (!(prior %in% c('truncnorm','beta','uniform')))
@@ -41,7 +42,8 @@ HybridPowerSLR <- R6Class(
         prior_sigma = prior_sigma,
         alpha=alpha,
         alt=alt,
-        assurance_props=assurance_props
+        quantiles=quantiles,
+        assurance_level_props=assurance_level_props
       )
       if (!is.null(r2)) {
         if (!(is.numeric(r2)) | r2 > 1 | r2 < 0)

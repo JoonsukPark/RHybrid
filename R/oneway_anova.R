@@ -1,7 +1,7 @@
 source('R/HybridPower.R')
 
-HybridPowerOnewayANOVA <- R6Class(
-  'HybridPowerOnewayANOVA',
+hp_oneway_anova <- R6Class(
+  'hp_oneway_anova',
   inherit = HybridPower,
   public = list(
     mu = NULL,
@@ -29,7 +29,8 @@ HybridPowerOnewayANOVA <- R6Class(
       rho = 0,
       epsilon = 1,
       alt = 'two.sided',
-      assurance_props = NULL
+      quantiles = NULL,
+      assurance_level_props=NULL
     ) {
       super$initialize(
         parallel = FALSE,
@@ -43,7 +44,8 @@ HybridPowerOnewayANOVA <- R6Class(
         prior_upper = prior_upper,
         alpha=alpha,
         alt=alt,
-        assurance_props=assurance_props
+        quantiles=quantiles,
+        assurance_level_props=assurance_level_props
       )
       if (!is.null(prior)) {
         if (!(prior %in% c('normal','uniform')))

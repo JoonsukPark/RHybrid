@@ -1,7 +1,7 @@
 source('R/HybridPower.R')
 
-HybridPowerProp <- R6Class(
-  'HybridPowerProp',
+hp_prop <- R6Class(
+  'hp_prop',
   inherit = HybridPower,
   public = list(
     hybrid_powers = NULL,
@@ -53,19 +53,20 @@ HybridPowerProp <- R6Class(
       prior_pi_1_sd = NULL,
       prior_pi_2_mu = NULL,
       prior_pi_2_sd = NULL,
-
-      assurance_props = NULL
+      assurance_level_props = NULL,
+      quantiles = NULL
     ) {
       super$initialize(
         parallel = FALSE,
         ns=ns,
         n_prior=n_prior,
         n_MC=n_MC,
-        prior=prior,
         alpha=alpha,
         alt=alt,
-        assurance_props=assurance_props
+        quantiles=quantiles,
+        assurance_level_props=assurance_level_props
       )
+      self$prior <- prior
       self$design <- design
       self$n_MC <- n_MC
 

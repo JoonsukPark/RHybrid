@@ -1,7 +1,7 @@
 source('R/HybridPower.R')
 
-HybridPowerTwowayANOVA <- R6Class(
-  'HybridPowerTwowayANOVA',
+hp_twoway_anova <- R6Class(
+  'hp_twoway_anova',
   inherit = HybridPower,
   public = list(
     es = NULL,
@@ -33,18 +33,20 @@ HybridPowerTwowayANOVA <- R6Class(
       rho = NULL,
       epsilon = NULL,
       alt = 'one.sided',
-      assurance_props = NULL
+      quantiles = NULL,
+      assurance_level_props=NULL
     ) {
       super$initialize(
         parallel = FALSE,
         ns=ns,
         n_prior=n_prior,
         n_MC=n_MC,
-        prior=prior,
         alpha=alpha,
         alt=alt,
-        assurance_props=assurance_props
+        quantiles=quantiles,
+        assurance_level_props=assurance_level_props
       )
+      self$prior <- prior
       self$fe_factor <- which(design == 'fe')
       self$rm_factor <- which(design == 'rm')
       if (!(is.null(cellmeans))) {
@@ -281,7 +283,7 @@ HybridPowerTwowayANOVA <- R6Class(
       return(summarise(group_by(self$output, n, type), assurance = mean(power), .groups='keep'))
     },
 
-    assurance_level = function(props=self$assurance_props) {
+    assurance_level = function(props=self$quantiles) {
       if (is.null(self$output))
         stop('Run hybrid_power() first')
       if (is.null(props))

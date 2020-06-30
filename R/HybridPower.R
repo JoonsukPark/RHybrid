@@ -26,7 +26,8 @@ HybridPower <- R6Class(
     prior_upper = NULL,
     prior_a = NULL,
     prior_b = NULL,
-    assurance_props = NULL,
+    quantiles = c(0, .25, .5, .75, 1),
+    assurance_level_props = NULL,
 
     initialize = function(
       parallel = FALSE,
@@ -42,7 +43,8 @@ HybridPower <- R6Class(
       prior_b = NULL,
       alpha = 0.05,
       alt = 'two.sided',
-      assurance_props = NULL,
+      quantiles = c(0, .25, .5, .75, 1),
+      assurance_level_props = NULL,
       validate = T
     ) {
       # Validate inputs
@@ -130,20 +132,35 @@ HybridPower <- R6Class(
         stop('Alpha should be between 0 and 1.')
       if (alt != 'one.sided' & alt != 'two.sided')
         stop('Alternative hypothesis should be either \'one.sided\' or \'two.sided\'!')
-      if (!(is.null(assurance_props))) {
-        if (length(assurance_props) == 1) {
-          if (!(is.numeric(assurance_props) & assurance_props <= 1 & assurance_props >= 0))
-            stop('Invalid assurance level')
+      if (!(is.null(quantiles))) {
+        if (length(quantiles) == 1) {
+          if (!(is.numeric(quantiles) & quantiles <= 1 & quantiles >= 0))
+            stop('Invalid quantile values')
         }
         else {
-          for (i in 1:length(assurance_props)) {
-            if (!(is.numeric(assurance_props[i]) & (assurance_props[i] <= 1) & (assurance_props[i] >= 0)))
-              stop('Invalid assurance proportions')
+          for (i in 1:length(quantiles)) {
+            if (!(is.numeric(quantiles[i]) & (quantiles[i] <= 1) & (quantiles[i] >= 0)))
+              stop('Invalid quantile values')
           }
         }
       }
       else
-        assurance_props <- c(.25, .5, .75)
+        quantiles <- c(0, .25, .5, .75, 1)
+
+      if (!(is.null(assurance_level_props))) {
+        if (length(assurance_level_props) == 1) {
+          if (!(is.numeric(assurance_level_props) & assurance_level_props <= 1 & assurance_level_props >= 0))
+            stop('Invalid proportions for assurance levels')
+        }
+        else {
+          for (i in 1:length(assurance_level_props)) {
+            if (!(is.numeric(assurance_level_props[i]) & (assurance_level_props[i] <= 1) & (assurance_level_props[i] >= 0)))
+              stop('Invalid proportions for assurance levels')
+          }
+        }
+      }
+      else
+        assurance_level_props <- NULL
 
       self$parallel <- parallel
       self$ns <- sort(ns)
@@ -152,7 +169,8 @@ HybridPower <- R6Class(
       self$prior <- prior
       self$alpha <- alpha
       self$alt <- alt
-      self$assurance_props <- assurance_props
+      self$quantiles <- quantiles
+      self$assurance_level_props <- assurance_level_props
     },
 
     print = function(){
@@ -164,6 +182,7 @@ HybridPower <- R6Class(
       cat('Type of prior: ', self$prior, '\n')
       cat('Alternative Hypothesis: ', self$alt, '\n')
       cat('Level of significance: ', self$alpha, '\n')
+      cat('Proportions for assurance levels: ', self$assurance_level_props, '\n')
     },
 
     assurance = function() {
@@ -172,7 +191,7 @@ HybridPower <- R6Class(
       return(summarise(group_by(self$output, n), assurance = mean(power), .groups='keep'))
     },
 
-    assurance_level = function(props=self$assurance_props) {
+    power_quantiles = function(props=self$quantiles) {
       if (is.null(self$output))
         stop('Run hybrid_power() first')
       if (is.null(props))
@@ -185,6 +204,26 @@ HybridPower <- R6Class(
       if (length(props) > 1) {
         for (i in 2:length(props)) {
           res <- left_join(res, summarise(group_by(self$output, n), quantile(power, probs=props[i]), .groups='keep'), by='n')
+        }
+      }
+      col_names <- c('n', props)
+      colnames(res) <- col_names
+      return(res)
+    },
+
+    assurance_level = function(props=self$assurance_level_props) {
+      if (is.null(self$output))
+        stop('Run hybrid_power() first')
+      if (is.null(props))
+        stop('Provide target proportions')
+      for (i in 1:length(props))
+        if (!(is.numeric(props[i])) | props[i] > 1 | props[i] < 0)
+          stop('Invalid proportion(s)')
+      props <- sort(props)
+      res <- summarise(group_by(self$output, n), private$compute_assurance_level(power, prop=props[1]), .groups='keep')
+      if (length(props) > 1) {
+        for (i in 2:length(props)) {
+          res <- left_join(res, summarise(group_by(self$output, n), private$compute_assurance_level(power, prop=props[i]), .groups='keep'), by='n')
         }
       }
       col_names <- c('n', props)
@@ -216,7 +255,9 @@ HybridPower <- R6Class(
       p <- p + xlab('Sample Size') + ylab('Power') + ggtitle('Distributions of Power')
       p <- p + stat_summary(fun=mean, geom='point', shape=5, size=4)
       p
-    }
+    },
+
+    seed = function(i) set.seed(i)
   ),
 
   private = list(
@@ -226,6 +267,10 @@ HybridPower <- R6Class(
       self$output <- suppressMessages(
         reshape2::melt(output, variable.name='n', value.name = 'power')
       )
+    },
+
+    compute_assurance_level = function(vec, prop) {
+      return(sum(vec >= prop) / length(vec))
     }
   )
 )

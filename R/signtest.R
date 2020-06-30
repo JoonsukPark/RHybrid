@@ -1,7 +1,7 @@
 source('R/HybridPower.R')
 
-HybridPowerSignTest <- R6Class(
-  'HybridPowerSigntest',
+hp_sign <- R6Class(
+  'hp_sign',
   inherit = HybridPower,
   public = list(
     p_0 = NULL,
@@ -32,7 +32,8 @@ HybridPowerSignTest <- R6Class(
       prior_upper = NULL,
       prior_a = NULL,
       prior_b = NULL,
-      assurance_props = NULL
+      quantiles = NULL,
+      assurance_level_props = NULL
     ) {
       if (!(is.null(prior))) {
         if (!(prior %in% c('truncnorm','beta','uniform')))
@@ -52,7 +53,8 @@ HybridPowerSignTest <- R6Class(
         prior_b = prior_b,
         alpha=alpha,
         alt=alt,
-        assurance_props=assurance_props
+        quantiles=quantiles,
+        assurance_level_props=assurance_level_props
       )
       if (!(is.numeric(p_0)) | p_0 > 1 | p_0 < 0)
         stop('Invalid p_0')

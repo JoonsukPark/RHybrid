@@ -1,7 +1,7 @@
 source('R/HybridPower.R')
 
-HybridPowerCorrelation <- R6Class(
-  'HybridPowerCorrelation',
+hp_cor <- R6Class(
+  'hp_cor',
   inherit = HybridPower,
   public = list(
     rho = NULL,
@@ -19,7 +19,8 @@ HybridPowerCorrelation <- R6Class(
       prior_mu = NULL,
       prior_sigma = NULL,
       rho = NULL,
-      assurance_props=NULL
+      quantiles=NULL,
+      assurance_level_props=NULL
     ) {
       super$initialize(
         parallel = parallel,
@@ -33,7 +34,8 @@ HybridPowerCorrelation <- R6Class(
         prior_sigma = prior_sigma,
         alpha = alpha,
         alt = alt,
-        assurance_props = assurance_props
+        quantiles = quantiles,
+        assurance_level_props=assurance_level_props
       )
       if (!(is.null(rho))) {
         if (!(is.numeric(rho)))

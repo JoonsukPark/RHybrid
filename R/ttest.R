@@ -1,7 +1,7 @@
 source('R/HybridPower.R')
 
-HybridPowerTtest <- R6Class(
-  'HybridPowerTtest',
+hp_ttest <- R6Class(
+  'hp_ttest',
   inherit = HybridPower,
   public = list(
     es = NULL,
@@ -24,7 +24,8 @@ HybridPowerTtest <- R6Class(
       prior_upper = NULL,
       design = 'one.sample',
       sd = 1,
-      assurance_props = c(0.5)
+      quantiles = NULL,
+      assurance_level_props=NULL
     ) {
       super$initialize(
         parallel = FALSE,
@@ -38,7 +39,8 @@ HybridPowerTtest <- R6Class(
         prior_upper = prior_upper,
         alpha=alpha,
         alt=alt,
-        assurance_props=assurance_props
+        quantiles=quantiles,
+        assurance_level_props=assurance_level_props
       )
       self$design <- design
       if (!(is.null(d))) {
