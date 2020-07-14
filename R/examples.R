@@ -76,6 +76,30 @@
 # x_hybrid$power_quantiles()
 # x_hybrid$assurance_level()
 #
+# # Unequal variances case (Welch t-test)
+# # This would take some time to run (adjust n_prior or n_MC to reduce running time)
+#
+# x_both_unequal_variance <- hp_ttest$new(
+#   parallel=F,
+#   ns = seq(10, 50, 10),
+#   n_prior=1000,
+#   n_MC=1000,
+#   prior = 'normal',
+#   prior_mu = 0.3,
+#   prior_sigma = 0.1,
+#   alpha=0.1,
+#   d = 0.1,
+#   sd = c(.1, .15),
+#   assurance_level_props = c(.5, .8)
+# )
+# x_both_unequal_variance$classical_power()
+# x_both_unequal_variance$hybrid_power()
+# x_both_unequal_variance$output
+# x_both_unequal_variance$assurance()
+# x_both_unequal_variance$boxplot()
+# x_both_unequal_variance$assurance()
+# x_both_unequal_variance$power_quantiles()
+# x_both_unequal_variance$assurance_level()
 #
 # ############################
 # ## Example 2: 1-way ANOVA ##

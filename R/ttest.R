@@ -28,7 +28,7 @@ hp_ttest <- R6Class(
       assurance_level_props=NULL
     ) {
       super$initialize(
-        parallel = FALSE,
+        parallel = parallel,
         ns=ns,
         n_prior=n_prior,
         n_MC=n_MC,
@@ -49,11 +49,14 @@ hp_ttest <- R6Class(
         if (length(d) != 1)
           stop('Cohen\'s d must be a single number!')
       }
-      self$d <- d
+      self$d <- abs(d)
 
-      if (is.numeric(sd)) {
-        if (sd > 0)
-          self$sd <- sd
+      if (is.numeric(sd) & length(sd) <= 2) {
+        for (i in 1:length(sd)) {
+          if (sd[i] <= 0)
+            stop('Invalid sd')
+        }
+        self$sd <- sd
       }
       else
         stop('Invalid sd')
@@ -81,20 +84,32 @@ hp_ttest <- R6Class(
       cat('Study design: ', self$design, '\n')
     },
 
-    classical_power = function(d = self$d, n = self$ns) {
+    classical_power = function(d = self$d, n = self$ns, cores=NULL) {
       if (is.null(d))
-        stop('Input effect size not provided!')
+        stop('Effect size is not provided!')
       else {
-        return(
-          power.t.test(
-            n = n,
-            delta = d,
-            sig.level = self$alpha,
-            alt = self$alt,
-            type = self$design,
-            power=NULL
-          )$power
-        )
+        if (length(self$sd) == 1 | (length(self$sd) == 2 & self$sd[1] == self$sd[2])) {
+          return(
+            power.t.test(
+              n = n,
+              delta = d,
+              sig.level = self$alpha,
+              alt = self$alt,
+              type = self$design,
+              power=NULL
+            )$power
+          )
+        }
+        else {
+          if (self$parallel) {
+            library(parallel)
+            if (is.null(cores)) cores <- detectCores()
+            return(unlist(mclapply(n, private$mc_ttest)))
+          }
+          else {
+            return(unlist(lapply(n, private$mc_ttest)))
+          }
+        }
       }
     },
 
@@ -104,7 +119,7 @@ hp_ttest <- R6Class(
       else {
         if (self$parallel) {
           library(parallel)
-          if (!(cores)) cores <- detectCores()
+          if (is.null(cores)) cores <- detectCores()
           self$output <- mclapply(self$ns, private$generate_hybrid_power)
           private$melt_output()
         }
@@ -135,6 +150,16 @@ hp_ttest <- R6Class(
       }
       else
         stop('Invalid prior type')
+    },
+
+    sim_ttest = function(i, n) {
+      x <- rnorm(n, 0, self$sd[1])
+      y <- rnorm(n, self$d, self$sd[2])
+      return(t.test(x, y, var.equal=F, paired=F)$p.value < self$alpha)
+    },
+
+    mc_ttest = function(n) {
+      return(mean(unlist(lapply(1:self$n_MC, private$sim_ttest, n=n))))
     },
 
     generate_hybrid_power = function(n) {
