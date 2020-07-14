@@ -55,7 +55,7 @@ hp_cor <- R6Class(
           cat('Prior_a: ', self$prior_a, '\n')
           cat('Prior_b: ', self$prior_b, '\n')
         }
-        else if (self$prior == 'normal') {
+        else if (self$prior == 'truncnorm') {
           cat('Prior_mu: ', self$prior_mu, '\n')
           cat('prior_sigma: ', self$prior_sigma, '\n')
         }

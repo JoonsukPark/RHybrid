@@ -107,6 +107,7 @@
 #
 # # This should generate an error
 # x_hybrid$classical_power()
+#
 # x_hybrid$hybrid_power()
 # x_hybrid$assurance()
 # x_hybrid$power_quantiles()
@@ -132,41 +133,8 @@
 # x_hybrid$boxplot()
 # x_hybrid$assurance_level()
 #
-# ############################
-# ## Example 3: 2-way ANOVA ##
-# ############################
-#
-# x_classical <- hp_twoway_anova$new(
-#   ns = c(10, 20, 30, 40),
-#   design = c('fe', 'rm'),
-#   cellmeans = matrix(c(2, 2.2, 2, 1.8, 2, 2.4), nrow=3),
-#   sd = 1,
-#   rho = 0.2,
-#   epsilon=1
-# )
-# x_classical$classical_power()
-#
-# x_hybrid <- hp_twoway_anova$new(
-#   parallel = T,
-#   ns = c(10, 20, 30, 40),
-#   n_prior=10,
-#   design = c('fe', 'rm'),
-#   prior = 'normal',
-#   prior_mu = matrix(c(2, 2.2, 2, 1.8, 2, 2.4), nrow=3),
-#   prior_sigma = matrix(rep(.5, 6), nrow=3),
-#   sd = 2,
-#   rho = 0.2,
-#   epsilon=1,
-#   quantiles = c(.2, .5, .8)
-# )
-# x_hybrid$hybrid_power()
-# x_hybrid$boxplot()
-# x_hybrid$assurance()
-# x_hybrid$power_quantiles()
-# x_hybrid$assurance_level()
-#
 # #####################################
-# # Example 4: bivariate correlation ##
+# # Example 3: bivariate correlation ##
 # #####################################
 #
 # # Classical power analysis (minimal example)
@@ -200,7 +168,7 @@
 # x_hybrid$assurance_level()
 #
 # #################################
-# ## Example 5: Proportions test ##
+# ## Example 4: Proportions test ##
 # #################################
 #
 # x <- hp_prop$new(
@@ -228,7 +196,7 @@
 # x$assurance_level()
 #
 # ##########################
-# ## Example 6: Sign test ##
+# ## Example 5: Sign test ##
 # ##########################
 #
 # x_classical <- hp_sign$new(
@@ -260,7 +228,7 @@
 # x_hybrid$assurance_level()
 #
 # #########################################
-# ## Example 7: Simple linear regression ##
+# ## Example 6: Simple linear regression ##
 # #########################################
 #
 # x_classical <- hp_slr$new(
@@ -288,7 +256,7 @@
 # x_hybrid$assurance_level()
 #
 # #######################################
-# ## Example 8: Chi-square test of GOF ##
+# ## Example 7: Chi-square test of GOF ##
 # #######################################
 #
 # x_classical <- hp_chisq$new(

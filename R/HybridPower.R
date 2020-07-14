@@ -32,19 +32,19 @@ HybridPower <- R6Class(
     initialize = function(
       parallel = FALSE,
       ns = c(),
-      n_prior = 1,
       n_MC = 1,
+      alpha = 0.05,
+      alt = 'two.sided',
+      quantiles = c(0, .25, .5, .75, 1),
+      assurance_level_props = NULL,
       prior = NULL,
+      n_prior = 1,
       prior_mu = NULL,
       prior_sigma = NULL,
       prior_lower = NULL,
       prior_upper = NULL,
       prior_a = NULL,
       prior_b = NULL,
-      alpha = 0.05,
-      alt = 'two.sided',
-      quantiles = c(0, .25, .5, .75, 1),
-      assurance_level_props = NULL,
       validate = T
     ) {
       # Validate inputs

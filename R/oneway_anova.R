@@ -15,8 +15,8 @@ hp_oneway_anova <- R6Class(
     initialize = function(
       parallel = FALSE,
       ns=c(),
-      n_prior=1,
-      n_MC=1,
+      n_prior=10,
+      n_MC=10,
       prior=NULL,
       alpha = 0.05,
       mu = NULL,
