@@ -32,6 +32,10 @@ hp_oneway_anova <- R6Class(
       quantiles = NULL,
       assurance_level_props=NULL
     ) {
+      if (!(is.null(prior))) {
+        if (!(prior %in% c('normal', 'uniform')))
+          stop('Invalid prior')
+      }
       super$initialize(
         parallel = FALSE,
         ns=ns,
@@ -73,6 +77,8 @@ hp_oneway_anova <- R6Class(
       }
       else
         self$k <- length(mu)
+      if (design == 'fe')
+        self$ns <- self$ns * self$k
     },
 
     print = function() {
@@ -109,9 +115,10 @@ hp_oneway_anova <- R6Class(
         }
         else {
           u <- self$k / (1-self$rho)
-          ncp <- f2*n*u
+          ncp <- f2*n*u*self$epsilon
           df1 <- (self$k-1)*self$epsilon
           df2 <- (n-1)*(self$k-1)*self$epsilon
+          print(c(f2, n, ncp, df1, df2))
         }
         return(private$compute_f_prob(f2, ncp, df1, df2))
       }

@@ -22,6 +22,10 @@ hp_cor <- R6Class(
       quantiles=NULL,
       assurance_level_props=NULL
     ) {
+      if (!(is.null(prior))) {
+        if (!(prior %in% c('normal', 'beta', 'truncnorm')))
+          stop('Invalid prior')
+      }
       super$initialize(
         parallel = parallel,
         ns = ns,
@@ -40,9 +44,9 @@ hp_cor <- R6Class(
       if (!(is.null(rho))) {
         if (!(is.numeric(rho)))
           stop('rho must be numeric')
-        if (rho > 1 | rho < 0)
-          stop('rho must be between 0 and 1')
-        self$rho <- rho
+        if (rho > 1 | rho < -1)
+          stop('rho must be between -1 and 1')
+        self$rho <- abs(rho)
       }
     },
 

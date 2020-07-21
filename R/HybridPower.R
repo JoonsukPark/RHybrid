@@ -130,7 +130,7 @@ HybridPower <- R6Class(
         stop('Invalid # Monte Carlo simulations!')
       if (alpha <= 0 | alpha >= 1)
         stop('Alpha should be between 0 and 1.')
-      if (alt != 'one.sided' & alt != 'two.sided')
+      if (!(alt %in% c('one.sided', 'two.sided', 'greater', 'less')))
         stop('Alternative hypothesis should be either \'one.sided\' or \'two.sided\'!')
       if (!(is.null(quantiles))) {
         if (length(quantiles) == 1) {
@@ -245,7 +245,10 @@ HybridPower <- R6Class(
         self$output <- res
         private$melt_output()
       }
-      return(self$output)
+      cat('\nExample output:\n\n')
+      print(head(self$output))
+      cat('\n...\n')
+      cat('\nFor the complete list of power values, access $output!\n')
     },
 
     boxplot = function() {

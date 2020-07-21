@@ -5,7 +5,6 @@ hp_slr <- R6Class(
   inherit = HybridPower,
   public = list(
     r2 = NULL,
-
     initialize = function(
       parallel = FALSE,
       ns=c(),
@@ -13,7 +12,6 @@ hp_slr <- R6Class(
       n_MC=1,
       prior=NULL,
       alpha = 0.05,
-      alt = 'two.sided',
       r2 = NULL,
       prior_a = NULL,
       prior_b = NULL,
@@ -25,8 +23,8 @@ hp_slr <- R6Class(
       assurance_level_props=NULL
     ) {
       if (!(is.null(prior))) {
-        if (!(prior %in% c('truncnorm','beta','uniform')))
-          stop('Prior must be one of truncnorm, beta or uniform')
+        if (!(prior %in% c('beta', 'uniform', 'truncnorm')))
+          stop('Invalid prior')
       }
       super$initialize(
         parallel = FALSE,
@@ -41,7 +39,7 @@ hp_slr <- R6Class(
         prior_mu = prior_mu,
         prior_sigma = prior_sigma,
         alpha=alpha,
-        alt=alt,
+        alt='one.sided',
         quantiles=quantiles,
         assurance_level_props=assurance_level_props
       )

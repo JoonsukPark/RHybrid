@@ -33,6 +33,10 @@ hp_chisq <- R6Class(
       quantiles = NULL,
       assurance_level_props = NULL
     ) {
+      if (!(is.null(prior))) {
+        if (!(prior %in% c('dirichlet', 'beta', 'uniform', 'truncnorm')))
+          stop('Invalid prior')
+      }
       super$initialize(
         parallel = FALSE,
         ns=ns,

@@ -56,6 +56,10 @@ hp_prop <- R6Class(
       assurance_level_props = NULL,
       quantiles = NULL
     ) {
+      if (!(is.null(prior))) {
+        if (!(prior %in% c('beta', 'uniform', 'truncnorm')))
+          stop('Invalid prior')
+      }
       super$initialize(
         parallel = FALSE,
         ns=ns,
@@ -183,27 +187,22 @@ hp_prop <- R6Class(
       cat('Study design: ', self$design, '\n')
     },
 
-    classical_power = function(n=self$ns, pi_1=self$pi_1, pi_2 = self$pi_2, exact=FALSE) {
+    classical_power = function(n=self$ns, pi_1=self$pi_1, pi_2 = self$pi_2, exact=T) {
       if (is.null(pi_2)) {
+        mu_1 <- abs(pi_1 - self$c)
         sd_0 <- sqrt(self$c*(1-self$c)/n)
-        mu_1 <- (pi_1 - self$c)
         sd_1 <- sqrt(pi_1*(1-pi_1)/n)
         if (self$alt == 'two.sided') {
-          crit_lower <- qnorm(self$alpha/2, 0, sd_0)
-          crit_upper <- qnorm(1-self$alpha/2, 0, sd_0)
-          return(pnorm(crit_lower, mu_1, sd_1) + 1 - pnorm(crit_upper, mu_1, sd_1))
-        }
-        else if (self$alt == 'less') {
-          crit <- qnorm(self$alpha/2)
-          return(pnorm(crit, mu_es, sd_es))
+          crit <- qnorm(1-self$alpha/2, 0, sd_0)
+          return(pnorm(-crit, mu_1, sd_1) + 1 - pnorm(crit, mu_1, sd_1))
         }
         else {
-          crit <- qnorm(1-self$alpha/2)
-          return(1 - pnorm(crit, mu_es, sd_es))
+          crit <- qnorm(1-self$alpha, 0, sd_0)
+          return(1 - pnorm(crit, mu_1, sd_1))
         }
       }
       else {
-        if (!(self$exact) & pi_2) {
+        if (!(self$exact) & (!(is.null(pi_2)))) {
           return(
             power.prop.test(
               n=n,
@@ -214,9 +213,13 @@ hp_prop <- R6Class(
             )$power
           )
         }
-        else if (self$exact & pi_2){
-          if ((length(pi_1) != 1) | (length(pi_1) != 1))
+        else {
+          if ((length(pi_1) != 1) | (length(pi_2) != 1))
             stop('Invalid pi_1 or pi_2 for a Fisher\'s exact test!')
+          if (pi_1 > pi_2)
+            alt <- 'less'
+          else
+            alt <- 'greater'
           return(sapply(n, private$sim_exact_test, n_MC = self$n_MC, pi_1=pi_1, pi_2=pi_2))
         }
       }
@@ -286,24 +289,6 @@ hp_prop <- R6Class(
       }
     },
 
-    is_significant = function(n, x) {
-      return(
-        fisher.test(
-          x=matrix(c(x[1], n-x[1], x[2], n-x[2]), ncol=2),
-          alt=self$alt,
-          conf.level = 1-self$alpha,
-          simulate.p.value = FALSE
-        )$p.value < self$alpha
-      )
-    },
-
-    sim_exact_test = function(n, n_MC, pi_1, pi_2) {
-      x <- cbind(rbinom(n_MC, n, pi_1), rbinom(n_MC, n, pi_2))
-      return(
-        mean(apply(x, 1, private$is_significant, n=n))
-      )
-    },
-
     classical_power2 = function(pi, n=self$ns, exact=FALSE) {
       pi_1 = pi[1]
       pi_2 = pi[2]
@@ -318,11 +303,11 @@ hp_prop <- R6Class(
         }
         else if (self$alt == 'less') {
           crit <- qnorm(self$alpha/2)
-          return(pnorm(crit, mu_es, sd_es))
+          return(pnorm(crit, mu_1, sd_1))
         }
         else {
           crit <- qnorm(1-self$alpha/2)
-          return(1 - pnorm(crit, mu_es, sd_es))
+          return(1 - pnorm(crit, mu_1, sd_1))
         }
       }
       else {
@@ -343,6 +328,23 @@ hp_prop <- R6Class(
           return(sapply(n, private$sim_exact_test, n_MC = self$n_MC, pi_1=pi_1, pi_2=pi_2))
         }
       }
+    },
+
+    is_significant = function(n, x) {
+      return(
+        fisher.test(
+          x=matrix(c(x[2], n-x[2], x[1], n-x[1]), ncol=2),
+          alt=self$alt,
+          simulate.p.value = FALSE
+        )$p.value < self$alpha
+      )
+    },
+
+    sim_exact_test = function(n, n_MC, pi_1, pi_2) {
+      X <- cbind(rbinom(n_MC, n, pi_1), rbinom(n_MC, n, pi_2))
+      return(
+        mean(apply(X, 1, private$is_significant, n=n))
+      )
     },
 
     generate_hybrid_power = function(n) {

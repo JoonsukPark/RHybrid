@@ -111,13 +111,8 @@ hp_sign <- R6Class(
           z_upper <- ((mu_0 - mu_1) / sigma_0 + qnorm(1-self$alpha/2))/rho
           return(pnorm(z_lower) + 1 - pnorm(z_upper))
         }
-        else if (self$alt == 'greater') {
-          z_upper <- ((mu_0 - mu_1) / sigma_0 + qnorm(1-self$alpha/2))/rho
-          return(1 - pnorm(z_upper))
-        }
-        else {
-          z_lower <- ((mu_0 - mu_1) / sigma_0 + qnorm(self$alpha/2))/rho
-          return(pnorm(z_lower))
+        else if (self$alt == 'one.sided') {
+          return(1-pnorm(qnorm(1-self$alpha), abs(mu_0 - mu_1) / sigma_0, 1/rho))
         }
       }
     },
@@ -147,11 +142,8 @@ hp_sign <- R6Class(
         crit_upper <- qbinom(1-self$alpha/2, n, p_0)
         return((x <= crit_lower) | (x >= crit_upper))
       }
-      else if (self$alt == 'greater') {
+      else if (self$alt == 'one.sided') {
         return(x >= qbinom(1-self$alpha/2, n, p_0))
-      }
-      else {
-        return(x <= qbinom(self$alpha/2, n, p_0)-1)
       }
     },
 

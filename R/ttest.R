@@ -27,6 +27,10 @@ hp_ttest <- R6Class(
       quantiles = NULL,
       assurance_level_props=NULL
     ) {
+      if (!(is.null(prior))) {
+        if (!(prior %in% c('normal', 'uniform')))
+          stop('Invalid prior')
+      }
       super$initialize(
         parallel = parallel,
         ns=ns,
@@ -49,7 +53,8 @@ hp_ttest <- R6Class(
         if (length(d) != 1)
           stop('Cohen\'s d must be a single number!')
       }
-      self$d <- abs(d)
+      if (!(is.null(d)))
+        self$d <- abs(d)
 
       if (is.numeric(sd) & length(sd) <= 2) {
         for (i in 1:length(sd)) {
@@ -110,28 +115,6 @@ hp_ttest <- R6Class(
             return(unlist(lapply(n, private$mc_ttest)))
           }
         }
-      }
-    },
-
-    hybrid_power = function(cores=NULL) {
-      if (is.null(self$prior))
-        stop('Specify a prior first')
-      else {
-        if (self$parallel) {
-          library(parallel)
-          if (is.null(cores)) cores <- detectCores()
-          self$output <- mclapply(self$ns, private$generate_hybrid_power)
-          private$melt_output()
-        }
-        else {
-          res <- list()
-          for (i in 1:length(self$ns)) {
-            res[[i]] <- private$generate_hybrid_power(self$ns[i])
-          }
-          self$output <- res
-          private$melt_output()
-        }
-        return(self$output)
       }
     }
   ),
