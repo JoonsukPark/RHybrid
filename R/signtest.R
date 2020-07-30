@@ -78,7 +78,7 @@ hp_sign <- R6Class(
           cat('Prior alpha: ', self$prior_a, '\n')
           cat('Prior beta: ', self$prior_b, '\n\n')
         }
-        else if (self$prior == 'normal') {
+        else if (self$prior == 'truncnorm') {
           cat('Prior mean: ', self$prior_mu, '\n')
           cat('Prior sd: ', self$prior_sigma, '\n\n')
         }
@@ -115,23 +115,6 @@ hp_sign <- R6Class(
           return(1-pnorm(qnorm(1-self$alpha), abs(mu_0 - mu_1) / sigma_0, 1/rho))
         }
       }
-    },
-
-    hybrid_power = function(cores=NULL) {
-      if (self$parallel) {
-        if (!(cores)) cores <- detectCores()
-        self$output <- parallel::mclapply(self$ns, private$generate_hybrid_power)
-        private$melt_output()
-      }
-      else {
-        res <- list()
-        for (i in 1:length(self$ns)) {
-          res[[i]] <- private$generate_hybrid_power(self$ns[i])
-        }
-        self$output <- res
-        private$melt_output()
-      }
-      return(self$output)
     }
   ),
 
@@ -165,8 +148,7 @@ hp_sign <- R6Class(
       }
     },
 
-    generate_hybrid_power = function(n) {
-      es <- private$draw_prior_es()
+    generate_hybrid_power = function(n, es) {
       return(
         sapply(es, FUN=self$classical_power, n=n, p_0=self$p_0)
       )

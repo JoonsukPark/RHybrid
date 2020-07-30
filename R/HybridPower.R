@@ -32,7 +32,7 @@ HybridPower <- R6Class(
     initialize = function(
       parallel = FALSE,
       ns = c(),
-      n_MC = 1,
+      n_MC = 100,
       alpha = 0.05,
       alt = 'two.sided',
       quantiles = c(0, .25, .5, .75, 1),
@@ -232,15 +232,16 @@ HybridPower <- R6Class(
     },
 
     hybrid_power = function(cores=NULL) {
+      es <- private$draw_prior_es()
       if (self$parallel) {
         if (is.null(cores)) cores <- detectCores()
-        self$output <- mclapply(self$ns, private$generate_hybrid_power)
+        self$output <- mclapply(self$ns, private$generate_hybrid_power, es=es)
         private$melt_output()
       }
       else {
         res <- list()
         for (i in 1:length(self$ns)) {
-          res[[i]] <- private$generate_hybrid_power(self$ns[i])
+          res[[i]] <- private$generate_hybrid_power(self$ns[i], es=es)
         }
         self$output <- res
         private$melt_output()

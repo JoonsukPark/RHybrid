@@ -123,8 +123,8 @@ hp_chisq <- R6Class(
       }
     },
 
-    generate_hybrid_power = function(n) {
-      return(apply(private$draw_prior_es(), 1, FUN=self$classical_power, n=n))
+    generate_hybrid_power = function(n, es) {
+      return(apply(es, 1, FUN=self$classical_power, n=n))
     }
   )
 )

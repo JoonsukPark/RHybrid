@@ -94,10 +94,13 @@ hp_ttest <- R6Class(
         stop('Effect size is not provided!')
       else {
         if (length(self$sd) == 1 | (length(self$sd) == 2 & self$sd[1] == self$sd[2])) {
+          if (length(self$sd) > 1) sd <- self$sd[1]
+          else sd <- self$sd
           return(
             power.t.test(
               n = n,
               delta = d,
+              sd=sd,
               sig.level = self$alpha,
               alt = self$alt,
               type = self$design,
@@ -135,24 +138,27 @@ hp_ttest <- R6Class(
         stop('Invalid prior type')
     },
 
-    sim_ttest = function(i, n) {
+    sim_ttest = function(i, d, n) {
       x <- rnorm(n, 0, self$sd[1])
-      y <- rnorm(n, self$d, self$sd[2])
+      y <- rnorm(n, d, self$sd[2])
       return(t.test(x, y, var.equal=F, paired=F)$p.value < self$alpha)
     },
 
-    mc_ttest = function(n) {
-      return(mean(unlist(lapply(1:self$n_MC, private$sim_ttest, n=n))))
+    mc_ttest = function(n, d=self$d) {
+      return(mean(unlist(lapply(1:self$n_MC, private$sim_ttest, d=d, n=n))))
     },
 
-    generate_hybrid_power = function(n) {
-      return(
-        sapply(
-          private$draw_prior_es(),
-          FUN=self$classical_power,
-          n=n
+    generate_hybrid_power = function(n, es) {
+      if (length(self$sd) == 1 | (length(self$sd) == 2 & self$sd[1] == self$sd[2])) {
+        return(
+          sapply(es, FUN=self$classical_power, n=n)
         )
-      )
+      }
+      else {
+        return(
+          sapply(es, FUN=private$mc_ttest, n=n)
+        )
+      }
     }
   )
 )

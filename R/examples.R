@@ -36,12 +36,14 @@
 # # Now it will be OK
 # x_hybrid <- hp_ttest$new(
 #   ns = seq(10, 90, 10),
-#   n_prior=1000,
+#   n_prior=10,
+#   n_MC=10,
 #   prior = 'normal',
-#   prior_mu = 0.3,
+#   prior_mu = 0.1,
 #   prior_sigma = 0.1,
-#   alpha=0.1,
-#   d = 0.1,
+#   alpha=0.05,
+#   d=0.1,
+#   sd=.1,
 #   assurance_level_props = c(.5, .8)
 # )
 # x_hybrid$classical_power()

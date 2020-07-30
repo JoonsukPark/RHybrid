@@ -167,10 +167,10 @@ hp_oneway_anova <- R6Class(
       return(means)
     },
 
-    generate_hybrid_power = function(n) {
+    generate_hybrid_power = function(n, es) {
       return(
         apply(
-          private$draw_prior_es(),
+          es,
           1,
           FUN=self$classical_power,
           n=n

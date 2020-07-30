@@ -347,8 +347,7 @@ hp_prop <- R6Class(
       )
     },
 
-    generate_hybrid_power = function(n) {
-      es <- private$draw_prior_es()
+    generate_hybrid_power = function(n, es) {
       if (is.null(dim(es))) return(self$classical_power(n, pi_1=es, pi_2=NULL, exact=self$exact))
       else {
         return(

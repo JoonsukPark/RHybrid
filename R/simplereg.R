@@ -94,9 +94,8 @@ hp_slr <- R6Class(
         )
       }
     },
-
-    generate_hybrid_power = function(n) {
-      return(self$classical_power(n, r2=private$draw_prior_es()))
+    generate_hybrid_power = function(n, es) {
+      return(self$classical_power(n, r2=es))
     }
   )
 )

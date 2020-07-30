@@ -111,10 +111,9 @@ hp_cor <- R6Class(
       }
     },
 
-    generate_hybrid_power = function(n) {
-      rhos <- private$draw_prior_es()
+    generate_hybrid_power = function(n, es) {
       return(
-        sapply(rhos, FUN=self$classical_power, n=n)
+        sapply(es, FUN=self$classical_power, n=n)
       )
     }
   )
