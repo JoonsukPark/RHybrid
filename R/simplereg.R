@@ -23,8 +23,33 @@ hp_slr <- R6Class(
       assurance_level_props=NULL
     ) {
       if (!(is.null(prior))) {
-        if (!(prior %in% c('beta', 'uniform', 'truncnorm')))
+        if (!(prior %in% c('beta', 'uniform', 'truncnorm'))) {
           stop('Invalid prior')
+        }
+        if (prior == 'truncnorm' | prior == 'uniform') {
+          if (!(is.null(prior_lower))) {
+            if (prior_lower < 0) {
+              stop('Lower bound of rho cannot be less than 0')
+            }
+            else {
+              prior_lower <- prior_lower
+            }
+          }
+          else {
+            prior_lower <- 0
+          }
+          if (!(is.null(prior_upper))) {
+            if (prior_upper > 1) {
+              stop('Upper bound of rho cannot be greater than 1')
+            }
+            else {
+              prior_upper <- prior_upper
+            }
+          }
+          else {
+            prior_upper <- 1
+          }
+        }
       }
       super$initialize(
         parallel = FALSE,
@@ -86,8 +111,8 @@ hp_slr <- R6Class(
         return(
           truncnorm::rtruncnorm(
             n=self$n_prior,
-            a=0,
-            b=1,
+            a=self$prior_lower,
+            b=self$prior_upper,
             mean=self$prior_mu,
             sd=self$prior_sigma
           )

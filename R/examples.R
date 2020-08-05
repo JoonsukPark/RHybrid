@@ -84,8 +84,8 @@
 # x_both_unequal_variance <- hp_ttest$new(
 #   parallel=F,
 #   ns = seq(10, 50, 10),
-#   n_prior=100,
-#   n_MC=100,
+#   n_prior=10,
+#   n_MC=10,
 #   prior = 'normal',
 #   prior_mu = 0.3,
 #   prior_sigma = 0.1,
@@ -159,6 +159,26 @@
 # x_hybrid$boxplot()
 # x_hybrid$assurance_level()
 #
+# # Welch ANOVA example
+# x_hybrid_unequal_variances <- hp_oneway_anova$new(
+#   ns = seq(10, 90, 10),
+#   mu = c(2, 2.2),
+#   prior_mu = c(2, 2.5),
+#   prior_sigma = c(0, .2),
+#   sd = c(1, 1.1),
+#   design='fe',
+#   prior = 'normal',
+#   n_prior = 100,
+#   quantiles = c(.2, .5, .8),
+#   assurance_level_props = c(.5, .8)
+# )
+#
+# x_hybrid_unequal_variances$classical_power()
+# x_hybrid_unequal_variances$hybrid_power()
+# x_hybrid_unequal_variances$power_quantiles()
+# x_hybrid_unequal_variances$boxplot()
+# x_hybrid_unequal_variances$assurance_level()
+#
 # #####################################
 # # Example 3: bivariate correlation ##
 # #####################################
@@ -207,9 +227,9 @@
 #   prior_pi_2_mu = .5,
 #   prior_pi_2_sd = .1,
 #   c = 0.5,
-#   n_MC = 10,
+#   n_MC = 1000,
 #   alt = 'two.sided',
-#   exact=T,
+#   exact=F,
 #   pi_1 = 0.5,
 #   pi_2 = 0.7,
 #   assurance_level_props = c(.5, .8)
@@ -271,6 +291,8 @@
 #   prior = 'truncnorm',
 #   prior_mu = .2,
 #   prior_sigma = .2,
+#   prior_lower = 0,
+#   prior_upper = 0.5,
 #   assurance_level_props = c(.5, .8)
 # )
 #

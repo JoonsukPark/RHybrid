@@ -16,6 +16,8 @@ hp_cor <- R6Class(
       prior = NULL,
       prior_a = NULL,
       prior_b = NULL,
+      prior_lower = NULL,
+      prior_upper = NULL,
       prior_mu = NULL,
       prior_sigma = NULL,
       rho = NULL,
@@ -23,8 +25,36 @@ hp_cor <- R6Class(
       assurance_level_props=NULL
     ) {
       if (!(is.null(prior))) {
-        if (!(prior %in% c('normal', 'beta', 'truncnorm')))
+        if (prior == 'truncnorm' | prior == 'uniform') {
+          if (!(is.null(prior_lower))) {
+            if (prior_lower < 0) {
+              stop('Lower bound of rho cannot be less than 0')
+            }
+          }
+          else {
+            prior_lower <- 0
+          }
+          if (!(is.null(prior_upper))) {
+            if (prior_upper > 1) {
+              stop('Upper bound of rho cannot be greater than 1')
+            }
+          }
+          else {
+            prior_upper <- 1
+          }
+        }
+        if (prior == 'truncnorm') {
+          if (abs(prior_mu) > 1) {
+            stop('The absolute value of prior_mu cannot be greater than 1')
+          }
+          if (abs(prior_sigma) <= 0) {
+            stop('prior_sigma cannot be negative')
+          }
+        }
+        else if (prior == 'beta') {}
+        else {
           stop('Invalid prior')
+        }
       }
       super$initialize(
         parallel = parallel,
@@ -34,6 +64,8 @@ hp_cor <- R6Class(
         prior = prior,
         prior_a = prior_a,
         prior_b = prior_b,
+        prior_lower = prior_lower,
+        prior_upper = prior_upper,
         prior_mu = prior_mu,
         prior_sigma = prior_sigma,
         alpha = alpha,
@@ -56,12 +88,16 @@ hp_cor <- R6Class(
       cat('Point effect size: ', self$rho, '\n')
       if (!(is.null(self$prior))) {
         if (self$prior == 'beta') {
-          cat('Prior_a: ', self$prior_a, '\n')
-          cat('Prior_b: ', self$prior_b, '\n')
+          cat('Prior a: ', self$prior_a, '\n')
+          cat('Prior b: ', self$prior_b, '\n')
         }
         else if (self$prior == 'truncnorm') {
-          cat('Prior_mu: ', self$prior_mu, '\n')
-          cat('prior_sigma: ', self$prior_sigma, '\n')
+          cat('Prior mu: ', self$prior_mu, '\n')
+          cat('Prior sigma: ', self$prior_sigma, '\n')
+        }
+        else {
+          cat('Prior lower: ', self$prior_lower, '\n')
+          cat('Prior upper: ', self$prior_upper, '\n')
         }
       }
     },
@@ -98,16 +134,19 @@ hp_cor <- R6Class(
           rbeta(self$n_prior, self$prior_a, self$prior_b)
         )
       }
-      else {
+      else if (self$prior == 'truncnorm') {
         return(
           truncnorm::rtruncnorm(
             self$n_prior,
             mean = self$prior_mu,
             sd = self$prior_sigma,
-            a = -1,
-            b = 1
+            a = self$prior_lower,
+            b = self$prior_upper
           )
         )
+      }
+      else {
+        return(runif(self$n_prior, self$lower, self$upper))
       }
     },
 

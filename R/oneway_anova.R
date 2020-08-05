@@ -36,6 +36,8 @@ hp_oneway_anova <- R6Class(
         if (!(prior %in% c('normal', 'uniform')))
           stop('Invalid prior')
       }
+      if (length(prior_sigma) == 1) prior_sigma <- rep(prior_sigma, length(prior_mu))
+      if (length(sd) == 1) sd <- rep(sd, length(prior_mu))
       super$initialize(
         parallel = FALSE,
         ns=ns,
@@ -61,6 +63,35 @@ hp_oneway_anova <- R6Class(
         stop('rho should be between 0 and 1!')
       if (epsilon > 1 | epsilon < 0)
         stop('epsilon should be between 0 and 1!')
+      if (!(is.numeric(sd))) {
+        stop('sd must be numeric')
+      }
+      if (length(sd) == 1) {
+        if (sd <= 0) {
+          stop('sd must be greater than 0')
+        }
+      }
+      else if (length(unique(sd)) == 1) {
+        sd <- sd[1]
+        if (sd <= 0) {
+          stop('sd must be greater than 0')
+        }
+      }
+
+      else {
+        if (design != 'fe') stop('Welch ANOVA power analysis is only supported for fixed effects design')
+        if (!(is.null(mu))) {
+          if (length(sd) != length(mu)) stop('Lengths of mu and sd do not match')
+        }
+        if (!(is.null(prior_mu))) {
+          if (length(sd) != length(prior_mu)) stop('Lengths of prior_mu and sd do not match')
+        }
+        for (i in 1:length(sd)) {
+          if (sd[i] <= 0) {
+            stop('Every sd must be greater than 0')
+          }
+        }
+      }
 
       self$mu <- mu
       self$design <- design
@@ -69,21 +100,37 @@ hp_oneway_anova <- R6Class(
       self$epsilon <- epsilon
 
       if (!(is.null(prior))) {
-        if (prior == 'normal')
+        if (prior == 'normal') {
+          if (!(is.null(prior_mu))) {
+            if (length(prior_mu) != length(prior_sigma)) {
+              stop('Lengths of prior_mu and prior_sigma do not match')
+            }
+          }
           self$k <- length(prior_mu)
+        }
         else if (prior == 'uniform') {
+          if ((!(is.null(prior_lower))) | (!(is.null(prior_upper))))
+            stop('Please provide both prior_lower and prior_upper')
+          else {
+            if (length(prior_lower) != length(prior_upper)) {
+              stop('Lengths of prior_lower and prior_upper do not match')
+            }
+          }
           self$k <- length(prior_lower)
         }
       }
-      else
+      else {
         self$k <- length(mu)
-      if (design == 'fe')
-        self$ns <- self$ns * self$k
+      }
     },
 
     print = function() {
       super$print()
-      cat('Fixed means for classical power analysis: ', self$mu, '\n')
+      if (!(is.null(self$mu))) {
+        cat('Fixed means for classical power analysis: ', self$mu, '\n')
+      }
+      cat('Standard deviation(s): ', self$sd, '\n')
+      cat('Sample sizes: ', self$ns/2, '\n')
       if (!(is.null(self$prior))) {
         if (self$prior == 'normal') {
           cat('Prior means: ', self$prior_mu, '\n')
@@ -106,26 +153,51 @@ hp_oneway_anova <- R6Class(
       if (is.null(mu))
         stop('Input effect size is null')
       else {
-        if (is.null(f2))
-          f2 <- private$compute_f(mu)^2
-        if (self$design == 'fe') {
-          ncp <- f2*n
-          df1 <- self$k-1
-          df2 <- n - self$k
+        if (length(self$sd) == 1) {
+          if (is.null(f2))
+            f2 <- private$compute_f(mu)^2
+          if (self$design == 'fe') {
+            ncp <- f2*n*self$k
+            df1 <- self$k-1
+            df2 <- n - self$k
+          }
+          else {
+            u <- self$k / (1-self$rho)
+            ncp <- f2*n*u*self$epsilon
+            df1 <- (self$k-1)*self$epsilon
+            df2 <- (n-1)*(self$k-1)*self$epsilon
+            print(c(f2, n, ncp, df1, df2))
+          }
+          return(private$compute_f_prob(f2, ncp, df1, df2))
         }
         else {
-          u <- self$k / (1-self$rho)
-          ncp <- f2*n*u*self$epsilon
-          df1 <- (self$k-1)*self$epsilon
-          df2 <- (n-1)*(self$k-1)*self$epsilon
-          print(c(f2, n, ncp, df1, df2))
+          return(sapply(n, private$simulate_welch, mu=mu))
         }
-        return(private$compute_f_prob(f2, ncp, df1, df2))
       }
     }
   ),
 
   private = list(
+    simulate_anova_uneq_var = function(i, n, mu) {
+      len_mu <- length(mu)
+      data <- vector()
+      group <- vector()
+      for (i in 1:len_mu) {
+        data <- c(data, rnorm(n, mu[i], self$sd[i]))
+        group <- c(group, rep(i, n))
+      }
+      df <- data.frame(
+        data = data,
+        group = factor(group)
+      )
+      res <- oneway.test(data ~ group, data=df, var.equal=F)$p.value < self$alpha
+      return(res)
+    },
+
+    simulate_welch = function(n, mu) {
+      return(mean(sapply(1:self$n_MC, private$simulate_anova_uneq_var, n=n, mu=mu)))
+    },
+
     compute_f = function(means) {
       return(sqrt(var(means)*(self$k-1)/self$k)/self$sd)
     },

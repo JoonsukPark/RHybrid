@@ -34,8 +34,35 @@ hp_chisq <- R6Class(
       assurance_level_props = NULL
     ) {
       if (!(is.null(prior))) {
-        if (!(prior %in% c('dirichlet', 'beta', 'uniform', 'truncnorm')))
+        if (!(prior %in% c('dirichlet', 'beta', 'uniform', 'truncnorm'))) {
           stop('Invalid prior')
+        }
+        if (prior == 'truncnorm') {
+          if (prior_mu < 0 | prior_mu > 1) {
+            stop('prior_mu must be between 0 and 1')
+          }
+          if (abs(prior_sigma) <= 0) {
+            stop('prior_sigma cannot be negative')
+          }
+        }
+        if (prior == 'truncnorm' | prior == 'uniform') {
+          if (!(is.null(prior_lower))) {
+            if (prior_lower < 0) {
+              stop('Lower bound of rho cannot be less than 0')
+            }
+          }
+          else {
+            prior_lower <- 0
+          }
+          if (!(is.null(prior_upper))) {
+            if (prior_upper > 1) {
+              stop('Upper bound of rho cannot be greater than 1')
+            }
+          }
+          else {
+            prior_upper <- 1
+          }
+        }
       }
       super$initialize(
         parallel = FALSE,
@@ -110,7 +137,13 @@ hp_chisq <- R6Class(
         return(cbind(es, 1-es))
       }
       else if (self$prior == 'truncnorm') {
-        es <- truncnorm::rtruncnorm(self$n_prior, mean=self$prior_mu, sd=self$prior_sigma, a=0, b=1)
+        es <- truncnorm::rtruncnorm(
+          self$n_prior,
+          mean=self$prior_mu,
+          sd=self$prior_sigma,
+          a=self$prior_lower,
+          b=self$prior_upper
+        )
         return(cbind(es, 1-es))
       }
       else if (self$prior == 'uniform') {

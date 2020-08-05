@@ -57,8 +57,9 @@ hp_prop <- R6Class(
       quantiles = NULL
     ) {
       if (!(is.null(prior))) {
-        if (!(prior %in% c('beta', 'uniform', 'truncnorm')))
+        if (!(prior %in% c('beta', 'uniform', 'truncnorm'))){
           stop('Invalid prior')
+        }
       }
       super$initialize(
         parallel = FALSE,
@@ -110,18 +111,26 @@ hp_prop <- R6Class(
           self$prior_pi_2_alpha <- prior_pi_2_alpha
           self$prior_pi_2_beta <- prior_pi_2_beta
         }
-        else if (prior == 'uniform') {
+        if (prior == 'uniform') {
+          if (is.null(prior_pi_1_lower) |
+              is.null(prior_pi_2_lower) |
+              is.null(prior_pi_1_upper) |
+              is.null(prior_pi_2_upper)
+          ) {
+            stop('Provide all the limits for pi_1 and pi_2')
+          }
           if ((prior_pi_1_lower > prior_pi_1_upper) |
               prior_pi_1_lower < 0 | prior_pi_1_upper > 1 |
               (prior_pi_2_lower > prior_pi_2_upper) |
-              prior_pi_2_lower < 0 | prior_pi_2_upper > 1)
+              prior_pi_2_lower < 0 | prior_pi_2_upper > 1) {
             stop('Invalid limits for the uniform prior(s)')
+          }
           self$prior_pi_1_lower <- prior_pi_1_lower
           self$prior_pi_1_upper <- prior_pi_1_upper
           self$prior_pi_2_lower <- prior_pi_2_lower
           self$prior_pi_2_upper <- prior_pi_2_upper
         }
-        else if (prior == 'truncnorm') {
+        if (prior == 'truncnorm') {
           if (!(is_numeric(prior_pi_1_mu) &
                 is_numeric(prior_pi_1_sd) &
                 (is.null(prior_pi_2_mu) | is_numeric(prior_pi_2_mu)) &
@@ -145,6 +154,23 @@ hp_prop <- R6Class(
           self$prior_pi_1_sd <- prior_pi_1_sd
           self$prior_pi_2_mu <- prior_pi_2_mu
           self$prior_pi_2_sd <- prior_pi_2_sd
+
+          if (is.null(prior_pi_1_lower)) prior_pi_1_lower <- 0
+          if (is.null(prior_pi_2_lower)) prior_pi_2_lower <- 0
+          if (is.null(prior_pi_1_upper)) prior_pi_1_upper <- 1
+          if (is.null(prior_pi_2_upper)) prior_pi_2_upper <- 1
+
+          if ((prior_pi_1_lower > prior_pi_1_upper) |
+              prior_pi_1_lower < 0 | prior_pi_1_upper > 1 |
+              (prior_pi_2_lower > prior_pi_2_upper) |
+              prior_pi_2_lower < 0 | prior_pi_2_upper > 1) {
+            stop('Invalid limits for the uniform prior(s)')
+          }
+
+          self$prior_pi_1_lower <- prior_pi_1_lower
+          self$prior_pi_1_upper <- prior_pi_1_upper
+          self$prior_pi_2_lower <- prior_pi_2_lower
+          self$prior_pi_2_upper <- prior_pi_2_upper
         }
       }
 
@@ -259,8 +285,8 @@ hp_prop <- R6Class(
           return(
             truncnorm::rtruncnorm(
               n=self$n_prior,
-              a=0,
-              b=1,
+              a=self$prior_pi_1_lower,
+              b=self$prior_pi_1_upper,
               mean=self$prior_pi_1_mu,
               sd=self$prior_pi_1_sd
             )
@@ -271,15 +297,15 @@ hp_prop <- R6Class(
             cbind(
               truncnorm::rtruncnorm(
                 n=self$n_prior,
-                a=0,
-                b=1,
+                a=self$prior_pi_1_lower,
+                b=self$prior_pi_1_upper,
                 mean=self$prior_pi_1_mu,
                 sd=self$prior_pi_1_sd
               ),
               truncnorm::rtruncnorm(
                 n=self$n_prior,
-                a=0,
-                b=1,
+                a=self$prior_pi_2_lower,
+                b=self$prior_pi_2_upper,
                 mean=self$prior_pi_2_mu,
                 sd=self$prior_pi_2_sd
               )

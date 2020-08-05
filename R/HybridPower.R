@@ -38,7 +38,7 @@ HybridPower <- R6Class(
       quantiles = c(0, .25, .5, .75, 1),
       assurance_level_props = NULL,
       prior = NULL,
-      n_prior = 1,
+      n_prior = 100,
       prior_mu = NULL,
       prior_sigma = NULL,
       prior_lower = NULL,
@@ -76,6 +76,18 @@ HybridPower <- R6Class(
             }
             self$prior_mu <- prior_mu
             self$prior_sigma <- prior_sigma
+            if (prior == 'truncnorm') {
+              if (is.null(prior_lower) != is.null(prior_upper)) {
+                stop('prior_lower and prior_upper must be both NULL or specified!')
+              }
+              if (!(is.null(prior_lower))) {
+                if (prior_lower >= prior_upper) {
+                  stop('prior_lower must be smaller than prior_upper')
+                }
+              }
+              self$prior_lower = prior_lower
+              self$prior_upper = prior_upper
+            }
           }
           else if (prior == 'uniform') {
             if (is.null(prior_lower))
@@ -232,24 +244,29 @@ HybridPower <- R6Class(
     },
 
     hybrid_power = function(cores=NULL) {
-      es <- private$draw_prior_es()
-      if (self$parallel) {
-        if (is.null(cores)) cores <- detectCores()
-        self$output <- mclapply(self$ns, private$generate_hybrid_power, es=es)
-        private$melt_output()
+      if (is.null(self$prior)) {
+        stop('Specify a prior first')
       }
       else {
-        res <- list()
-        for (i in 1:length(self$ns)) {
-          res[[i]] <- private$generate_hybrid_power(self$ns[i], es=es)
+        es <- private$draw_prior_es()
+        if (self$parallel) {
+          if (is.null(cores)) cores <- detectCores()
+          self$output <- mclapply(self$ns, private$generate_hybrid_power, es=es)
+          private$melt_output()
         }
-        self$output <- res
-        private$melt_output()
+        else {
+          res <- list()
+          for (i in 1:length(self$ns)) {
+            res[[i]] <- private$generate_hybrid_power(self$ns[i], es=es)
+          }
+          self$output <- res
+          private$melt_output()
+        }
+        cat('\nExample output:\n\n')
+        print(head(self$output))
+        cat('\n...\n')
+        cat('\nFor the complete list of power values, access $output!\n')
       }
-      cat('\nExample output:\n\n')
-      print(head(self$output))
-      cat('\n...\n')
-      cat('\nFor the complete list of power values, access $output!\n')
     },
 
     boxplot = function() {
@@ -259,9 +276,7 @@ HybridPower <- R6Class(
       p <- p + xlab('Sample Size') + ylab('Power') + ggtitle('Distributions of Power')
       p <- p + stat_summary(fun=mean, geom='point', shape=5, size=4)
       p
-    },
-
-    seed = function(i) set.seed(i)
+    }
   ),
 
   private = list(
