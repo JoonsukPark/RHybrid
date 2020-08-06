@@ -63,7 +63,6 @@
 #
 # x_hybrid$assurance()
 # x_hybrid$boxplot()
-# x_hybrid$assurance()
 # x_hybrid$power_quantiles()
 # x_hybrid$assurance_level()
 #
