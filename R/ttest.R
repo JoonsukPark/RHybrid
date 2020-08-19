@@ -2,12 +2,12 @@ source('R/HybridPower.R')
 
 hp_ttest <- R6Class(
   'hp_ttest',
-  inherit = HybridPower,
+  inherit = hp,
   public = list(
     es = NULL,
     design = NULL,
     d = NULL,
-    sd = 1,
+    sigma = 1,
 
     initialize = function(
       parallel = FALSE,
@@ -23,7 +23,7 @@ hp_ttest <- R6Class(
       prior_lower = NULL,
       prior_upper = NULL,
       design = 'one.sample',
-      sd = 1,
+      sigma = 1,
       quantiles = NULL,
       assurance_level_props=NULL
     ) {
@@ -56,25 +56,25 @@ hp_ttest <- R6Class(
       if (!(is.null(d)))
         self$d <- abs(d)
 
-      if (is.numeric(sd) & length(sd) <= 2) {
-        for (i in 1:length(sd)) {
-          if (sd[i] <= 0)
-            stop('Invalid sd')
+      if (is.numeric(sigma) & length(sigma) <= 2) {
+        for (i in 1:length(sigma)) {
+          if (sigma[i] <= 0)
+            stop('Invalid sigma')
         }
-        self$sd <- sd
+        self$sigma <- sigma
       }
       else
-        stop('Invalid sd')
-      if (!(is.null(prior)) & is.null(sd))
-        stop('sd cannot be null for hybrid power calculation')
+        stop('Invalid sigma')
+      if (!(is.null(prior)) & is.null(sigma))
+        stop('sigma cannot be null for hybrid power calculation')
     },
 
     print = function() {
       super$print()
       if (!(is.null(self$d)))
         cat('Cohen\'s d: ', self$d, '\n')
-      if (!(is.null(self$sd)))
-        cat('Standard deviation for data: ', self$sd, '\n')
+      if (!(is.null(self$sigma)))
+        cat('Standard deviation for data: ', self$sigma, '\n')
       if (!(is.null(prior))) {
         if (self$prior == 'normal') {
           cat('Prior mean: ', self$prior_mu, '\n')
@@ -93,14 +93,14 @@ hp_ttest <- R6Class(
       if (is.null(d))
         stop('Effect size is not provided!')
       else {
-        if (length(self$sd) == 1 | (length(self$sd) == 2 & self$sd[1] == self$sd[2])) {
-          if (length(self$sd) > 1) sd <- self$sd[1]
-          else sd <- self$sd
+        if (length(self$sigma) == 1 | (length(self$sigma) == 2 & self$sigma[1] == self$sigma[2])) {
+          if (length(self$sigma) > 1) sigma <- self$sigma[1]
+          else sigma <- self$sigma
           return(
             power.t.test(
               n = n,
               delta = d,
-              sd=sd,
+              sd=sigma,
               sig.level = self$alpha,
               alt = self$alt,
               type = self$design,
@@ -139,8 +139,8 @@ hp_ttest <- R6Class(
     },
 
     sim_ttest = function(i, d, n) {
-      x <- rnorm(n, 0, self$sd[1])
-      y <- rnorm(n, d, self$sd[2])
+      x <- rnorm(n, 0, self$sigma[1])
+      y <- rnorm(n, d, self$sigma[2])
       return(t.test(x, y, var.equal=F, paired=F)$p.value < self$alpha)
     },
 
@@ -149,7 +149,7 @@ hp_ttest <- R6Class(
     },
 
     generate_hybrid_power = function(n, es) {
-      if (length(self$sd) == 1 | (length(self$sd) == 2 & self$sd[1] == self$sd[2])) {
+      if (length(self$sigma) == 1 | (length(self$sigma) == 2 & self$sigma[1] == self$sigma[2])) {
         return(
           sapply(es, FUN=self$classical_power, n=n)
         )

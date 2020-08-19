@@ -2,7 +2,7 @@ source('R/HybridPower.R')
 
 hp_chisq <- R6Class(
   'hp_chisq',
-  inherit = HybridPower,
+  inherit = hp,
   public = list(
     p_0 = NULL,
     p_1 = NULL,

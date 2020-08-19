@@ -43,7 +43,7 @@
 #   prior_sigma = 0.1,
 #   alpha=0.05,
 #   d=0.1,
-#   sd=.1,
+#   sigma=.1,
 #   assurance_level_props = c(.5, .8)
 # )
 # x_hybrid$classical_power()
@@ -90,7 +90,7 @@
 #   prior_sigma = 0.1,
 #   alpha=0.1,
 #   d = 0.1,
-#   sd = c(.1, .15),
+#   sigma = c(.1, .15),
 #   assurance_level_props = c(.5, .8)
 # )
 # x_both_unequal_variance$classical_power()
@@ -110,7 +110,7 @@
 # x_classical <- hp_oneway_anova$new(
 #   ns = seq(10, 90, 10),
 #   mu = c(2, 2.2),
-#   sd = 1,
+#   sigma = 1,
 #   design='fe'
 # )
 # x_classical$classical_power()
@@ -124,13 +124,13 @@
 #   ns = seq(10, 90, 10),
 #   prior_mu = c(2, 2.5),
 #   prior_sigma = c(0, .2),
-#   sd = 1,
+#   sigma = 1,
 #   design='fe',
 #   prior = 'normal',
 #   n_prior = 1000
 # )
 #
-# # This should generate an error
+# # This should generate an error because the effect size is not provided
 # x_hybrid$classical_power()
 #
 # x_hybrid$hybrid_power()
@@ -144,7 +144,7 @@
 #   mu = c(2, 2.2),
 #   prior_mu = c(2, 2.5),
 #   prior_sigma = c(0, .2),
-#   sd = 1,
+#   sigma = 1,
 #   design='fe',
 #   prior = 'normal',
 #   n_prior = 1000,
@@ -164,7 +164,7 @@
 #   mu = c(2, 2.2),
 #   prior_mu = c(2, 2.5),
 #   prior_sigma = c(0, .2),
-#   sd = c(1, 1.1),
+#   sigma = c(1, 1.1),
 #   design='fe',
 #   prior = 'normal',
 #   n_prior = 100,
@@ -222,9 +222,9 @@
 #   n_prior=10,
 #   prior = 'truncnorm',
 #   prior_pi_1_mu = .6,
-#   prior_pi_1_sd = .1,
+#   prior_pi_1_sigma = .1,
 #   prior_pi_2_mu = .5,
-#   prior_pi_2_sd = .1,
+#   prior_pi_2_sigma = .1,
 #   c = 0.5,
 #   n_MC = 1000,
 #   alt = 'two.sided',
@@ -281,7 +281,6 @@
 #   r2 = 0.1
 # )
 # x_classical$classical_power()
-#
 #
 # x_hybrid <- hp_slr$new(
 #   ns = seq(10, 90, 10),

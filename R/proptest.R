@@ -2,7 +2,7 @@ source('R/HybridPower.R')
 
 hp_prop <- R6Class(
   'hp_prop',
-  inherit = HybridPower,
+  inherit = hp,
   public = list(
     hybrid_powers = NULL,
     design = NULL,
@@ -20,9 +20,9 @@ hp_prop <- R6Class(
     prior_pi_2_upper = NULL,
     prior_pi_2_lower = NULL,
     prior_pi_1_mu = NULL,
-    prior_pi_1_sd = NULL,
+    prior_pi_1_sigma = NULL,
     prior_pi_2_mu = NULL,
-    prior_pi_2_sd = NULL,
+    prior_pi_2_sigma = NULL,
 
     initialize = function(
       parallel = FALSE,
@@ -50,9 +50,9 @@ hp_prop <- R6Class(
       prior_pi_2_lower = NULL,
 
       prior_pi_1_mu = NULL,
-      prior_pi_1_sd = NULL,
+      prior_pi_1_sigma = NULL,
       prior_pi_2_mu = NULL,
-      prior_pi_2_sd = NULL,
+      prior_pi_2_sigma = NULL,
       assurance_level_props = NULL,
       quantiles = NULL
     ) {
@@ -94,7 +94,7 @@ hp_prop <- R6Class(
           if (!(is_numeric(prior_pi_1_alpha) &
                is_numeric(prior_pi_1_beta) &
                (is.null(prior_pi_2_mu) | is_numeric(prior_pi_2_mu)) &
-               (is.null(prior_pi_2_sd) | is_numeric(prior_pi_2_sd))
+               (is.null(prior_pi_2_sigma) | is_numeric(prior_pi_2_sigma))
             )
           )
             stop('Invalid input type for the priors')
@@ -132,9 +132,9 @@ hp_prop <- R6Class(
         }
         if (prior == 'truncnorm') {
           if (!(is_numeric(prior_pi_1_mu) &
-                is_numeric(prior_pi_1_sd) &
+                is_numeric(prior_pi_1_sigma) &
                 (is.null(prior_pi_2_mu) | is_numeric(prior_pi_2_mu)) &
-                (is.null(prior_pi_2_sd) | is_numeric(prior_pi_2_sd))
+                (is.null(prior_pi_2_sigma) | is_numeric(prior_pi_2_sigma))
             )
           )
             stop('Invalid input type for the priors')
@@ -144,16 +144,16 @@ hp_prop <- R6Class(
             if (prior_pi_2_mu <= 0 | prior_pi_2_mu >= 1 )
               stop('Prior means must be between 0 and 1')
           }
-          if (prior_pi_1_sd <= 0)
+          if (prior_pi_1_sigma <= 0)
             stop('Prior standard deviations must be positive')
-          if  (!(is.null(prior_pi_2_sd))) {
-            if (prior_pi_2_sd <= 0)
+          if  (!(is.null(prior_pi_2_sigma))) {
+            if (prior_pi_2_sigma <= 0)
               stop('Prior standard deviations must be positive')
           }
           self$prior_pi_1_mu <- prior_pi_1_mu
-          self$prior_pi_1_sd <- prior_pi_1_sd
+          self$prior_pi_1_sigma <- prior_pi_1_sigma
           self$prior_pi_2_mu <- prior_pi_2_mu
-          self$prior_pi_2_sd <- prior_pi_2_sd
+          self$prior_pi_2_sigma <- prior_pi_2_sigma
 
           if (is.null(prior_pi_1_lower)) prior_pi_1_lower <- 0
           if (is.null(prior_pi_2_lower)) prior_pi_2_lower <- 0
@@ -204,9 +204,9 @@ hp_prop <- R6Class(
       }
       else if (self$prior == 'truncnorm') {
         cat('Prior mean (p_1): ', self$prior_pi_1_mu, '\n')
-        cat('Prior sd (p_1): ', self$prior_pi_1_sd, '\n')
+        cat('Prior sigma (p_1): ', self$prior_pi_1_sigma, '\n')
         cat('Prior mean (p_2): ', self$prior_pi_2_mu, '\n')
-        cat('Prior sd (p_2): ', self$prior_pi_2_sd, '\n')
+        cat('Prior sigma (p_2): ', self$prior_pi_2_sigma, '\n')
       }
       if (!(is.null(self$c)))
         cat('Population proportion under the null: ',self$c, '\n')
@@ -216,15 +216,15 @@ hp_prop <- R6Class(
     classical_power = function(n=self$ns, pi_1=self$pi_1, pi_2 = self$pi_2, exact=T) {
       if (is.null(pi_2)) {
         mu_1 <- abs(pi_1 - self$c)
-        sd_0 <- sqrt(self$c*(1-self$c)/n)
-        sd_1 <- sqrt(pi_1*(1-pi_1)/n)
+        sigma_0 <- sqrt(self$c*(1-self$c)/n)
+        sigma_1 <- sqrt(pi_1*(1-pi_1)/n)
         if (self$alt == 'two.sided') {
-          crit <- qnorm(1-self$alpha/2, 0, sd_0)
-          return(pnorm(-crit, mu_1, sd_1) + 1 - pnorm(crit, mu_1, sd_1))
+          crit <- qnorm(1-self$alpha/2, 0, sigma_0)
+          return(pnorm(-crit, mu_1, sigma_1) + 1 - pnorm(crit, mu_1, sigma_1))
         }
         else {
-          crit <- qnorm(1-self$alpha, 0, sd_0)
-          return(1 - pnorm(crit, mu_1, sd_1))
+          crit <- qnorm(1-self$alpha, 0, sigma_0)
+          return(1 - pnorm(crit, mu_1, sigma_1))
         }
       }
       else {
@@ -281,14 +281,14 @@ hp_prop <- R6Class(
         }
       }
       else if (self$prior == 'truncnorm') {
-        if (is.null(self$prior_pi_2_mu) | is.null(self$prior_pi_2_sd)) {
+        if (is.null(self$prior_pi_2_mu) | is.null(self$prior_pi_2_sigma)) {
           return(
             truncnorm::rtruncnorm(
               n=self$n_prior,
               a=self$prior_pi_1_lower,
               b=self$prior_pi_1_upper,
               mean=self$prior_pi_1_mu,
-              sd=self$prior_pi_1_sd
+              sd=self$prior_pi_1_sigma
             )
           )
         }
@@ -300,14 +300,14 @@ hp_prop <- R6Class(
                 a=self$prior_pi_1_lower,
                 b=self$prior_pi_1_upper,
                 mean=self$prior_pi_1_mu,
-                sd=self$prior_pi_1_sd
+                sd=self$prior_pi_1_sigma
               ),
               truncnorm::rtruncnorm(
                 n=self$n_prior,
                 a=self$prior_pi_2_lower,
                 b=self$prior_pi_2_upper,
                 mean=self$prior_pi_2_mu,
-                sd=self$prior_pi_2_sd
+                sd=self$prior_pi_2_sigma
               )
             )
           )
@@ -319,21 +319,21 @@ hp_prop <- R6Class(
       pi_1 = pi[1]
       pi_2 = pi[2]
       if (is.null(pi_2)) {
-        sd_0 <- sqrt(self$c*(1-self$c)/n)
+        sigma_0 <- sqrt(self$c*(1-self$c)/n)
         mu_1 <- (pi_1 - self$c)
-        sd_1 <- sqrt(pi_1*(1-pi_1)/n)
+        sigma_1 <- sqrt(pi_1*(1-pi_1)/n)
         if (self$alt == 'two.sided') {
-          crit_lower <- qnorm(self$alpha/2, 0, sd_0)
-          crit_upper <- qnorm(1-self$alpha/2, 0, sd_0)
-          return(pnorm(crit_lower, mu_1, sd_1) + 1 - pnorm(crit_upper, mu_1, sd_1))
+          crit_lower <- qnorm(self$alpha/2, 0, sigma_0)
+          crit_upper <- qnorm(1-self$alpha/2, 0, sigma_0)
+          return(pnorm(crit_lower, mu_1, sigma_1) + 1 - pnorm(crit_upper, mu_1, sigma_1))
         }
         else if (self$alt == 'less') {
           crit <- qnorm(self$alpha/2)
-          return(pnorm(crit, mu_1, sd_1))
+          return(pnorm(crit, mu_1, sigma_1))
         }
         else {
           crit <- qnorm(1-self$alpha/2)
-          return(1 - pnorm(crit, mu_1, sd_1))
+          return(1 - pnorm(crit, mu_1, sigma_1))
         }
       }
       else {

@@ -6,7 +6,7 @@ library(parallel)
 
 is_numeric <- function(x) return(is.numeric(x) & length(x) == 1)
 
-HybridPower <- R6Class(
+hp <- R6Class(
   'HybridPower',
   public = list(
     es = NULL,

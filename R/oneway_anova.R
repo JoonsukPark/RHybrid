@@ -2,11 +2,11 @@ source('R/HybridPower.R')
 
 hp_oneway_anova <- R6Class(
   'hp_oneway_anova',
-  inherit = HybridPower,
+  inherit = hp,
   public = list(
     mu = NULL,
     es = NULL,
-    sd = 1,
+    sigma = 1,
     k = NULL,
     design = NULL,
     rho = 0,
@@ -24,7 +24,7 @@ hp_oneway_anova <- R6Class(
       prior_sigma = NULL,
       prior_lower = NULL,
       prior_upper = NULL,
-      sd = 1,
+      sigma = 1,
       design = 'fe',
       rho = 0,
       epsilon = 1,
@@ -37,7 +37,10 @@ hp_oneway_anova <- R6Class(
           stop('Invalid prior')
       }
       if (length(prior_sigma) == 1) prior_sigma <- rep(prior_sigma, length(prior_mu))
-      if (length(sd) == 1) sd <- rep(sd, length(prior_mu))
+      if (length(sigma) == 1) {
+        if(is.null(mu)) sigma <- rep(sigma, length(prior_mu))
+        else sigma <- rep(sigma, length(mu))
+      }
       super$initialize(
         parallel = FALSE,
         ns=ns,
@@ -63,32 +66,32 @@ hp_oneway_anova <- R6Class(
         stop('rho should be between 0 and 1!')
       if (epsilon > 1 | epsilon < 0)
         stop('epsilon should be between 0 and 1!')
-      if (!(is.numeric(sd))) {
-        stop('sd must be numeric')
+      if (!(is.numeric(sigma))) {
+        stop('sigma must be numeric')
       }
-      if (length(sd) == 1) {
-        if (sd <= 0) {
-          stop('sd must be greater than 0')
+      if (length(sigma) == 1) {
+        if (sigma <= 0) {
+          stop('sigma must be greater than 0')
         }
       }
-      else if (length(unique(sd)) == 1) {
-        sd <- sd[1]
-        if (sd <= 0) {
-          stop('sd must be greater than 0')
+      else if (length(unique(sigma)) == 1) {
+        sigma <- sigma[1]
+        if (sigma <= 0) {
+          stop('sigma must be greater than 0')
         }
       }
 
       else {
         if (design != 'fe') stop('Welch ANOVA power analysis is only supported for fixed effects design')
         if (!(is.null(mu))) {
-          if (length(sd) != length(mu)) stop('Lengths of mu and sd do not match')
+          if (length(sigma) != length(mu)) stop('Lengths of mu and sigma do not match')
         }
         if (!(is.null(prior_mu))) {
-          if (length(sd) != length(prior_mu)) stop('Lengths of prior_mu and sd do not match')
+          if (length(sigma) != length(prior_mu)) stop('Lengths of prior_mu and sigma do not match')
         }
-        for (i in 1:length(sd)) {
-          if (sd[i] <= 0) {
-            stop('Every sd must be greater than 0')
+        for (i in 1:length(sigma)) {
+          if (sigma[i] <= 0) {
+            stop('Every sigma must be greater than 0')
           }
         }
       }
@@ -96,7 +99,7 @@ hp_oneway_anova <- R6Class(
       self$mu <- mu
       self$design <- design
       self$rho <- rho
-      self$sd <- sd
+      self$sigma <- sigma
       self$epsilon <- epsilon
 
       if (!(is.null(prior))) {
@@ -129,12 +132,12 @@ hp_oneway_anova <- R6Class(
       if (!(is.null(self$mu))) {
         cat('Fixed means for classical power analysis: ', self$mu, '\n')
       }
-      cat('Standard deviation(s): ', self$sd, '\n')
+      cat('Standard deviation(s): ', self$sigma, '\n')
       cat('Sample sizes: ', self$ns/2, '\n')
       if (!(is.null(self$prior))) {
         if (self$prior == 'normal') {
           cat('Prior means: ', self$prior_mu, '\n')
-          cat('Prior sds: ', self$prior_sigma, '\n\n')
+          cat('Prior sigmas: ', self$prior_sigma, '\n\n')
         }
         else if (self$prior == 'uniform') {
           cat('Prior lower bounds: ', self$prior_lower, '\n')
@@ -153,7 +156,7 @@ hp_oneway_anova <- R6Class(
       if (is.null(mu))
         stop('Input effect size is null')
       else {
-        if (length(self$sd) == 1) {
+        if (length(self$sigma) == 1) {
           if (is.null(f2))
             f2 <- private$compute_f(mu)^2
           if (self$design == 'fe') {
@@ -183,7 +186,7 @@ hp_oneway_anova <- R6Class(
       data <- vector()
       group <- vector()
       for (i in 1:len_mu) {
-        data <- c(data, rnorm(n, mu[i], self$sd[i]))
+        data <- c(data, rnorm(n, mu[i], self$sigma[i]))
         group <- c(group, rep(i, n))
       }
       df <- data.frame(
@@ -199,7 +202,7 @@ hp_oneway_anova <- R6Class(
     },
 
     compute_f = function(means) {
-      return(sqrt(var(means)*(self$k-1)/self$k)/self$sd)
+      return(sqrt(var(means)*(self$k-1)/self$k)/self$sigma)
     },
 
     compute_f_prob = function(f, ncp, df1, df2) {

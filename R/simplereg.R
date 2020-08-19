@@ -2,7 +2,7 @@ source('R/HybridPower.R')
 
 hp_slr <- R6Class(
   'hp_slr',
-  inherit = HybridPower,
+  inherit = hp,
   public = list(
     r2 = NULL,
     initialize = function(

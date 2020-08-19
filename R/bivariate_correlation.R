@@ -2,10 +2,9 @@ source('R/HybridPower.R')
 
 hp_cor <- R6Class(
   'hp_cor',
-  inherit = HybridPower,
+  inherit = hp,
   public = list(
     rho = NULL,
-
     initialize = function(
       parallel = FALSE,
       ns=c(),

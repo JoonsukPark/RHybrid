@@ -2,7 +2,7 @@ source('R/HybridPower.R')
 
 hp_sign <- R6Class(
   'hp_sign',
-  inherit = HybridPower,
+  inherit = hp,
   public = list(
     p_0 = NULL,
     p_1 = NULL,
