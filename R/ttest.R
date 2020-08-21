@@ -100,7 +100,7 @@ hp_ttest <- R6Class(
             power.t.test(
               n = n,
               delta = d,
-              sd=sigma,
+              sd = 1,
               sig.level = self$alpha,
               alt = self$alt,
               type = self$design,
