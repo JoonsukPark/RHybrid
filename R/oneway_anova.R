@@ -169,7 +169,6 @@ hp_oneway_anova <- R6Class(
             ncp <- f2*n*u*self$epsilon
             df1 <- (self$k-1)*self$epsilon
             df2 <- (n-1)*(self$k-1)*self$epsilon
-            print(c(f2, n, ncp, df1, df2))
           }
           return(private$compute_f_prob(f2, ncp, df1, df2))
         }
@@ -202,7 +201,7 @@ hp_oneway_anova <- R6Class(
     },
 
     compute_f = function(means) {
-      return(sqrt(var(means)*(self$k-1)/self$k)/self$sigma)
+      return(sqrt(var(means)*(self$k-1)/self$k/self$sigma^2))
     },
 
     compute_f_prob = function(f, ncp, df1, df2) {
