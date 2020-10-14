@@ -83,8 +83,8 @@
 # x_both_unequal_variance <- hp_ttest$new(
 #   parallel=F,
 #   ns = seq(10, 50, 10),
-#   n_prior=10,
-#   n_MC=10,
+#   n_prior=100,
+#   n_MC=100,
 #   prior = 'normal',
 #   prior_mu = 0.3,
 #   prior_sigma = 0.1,
