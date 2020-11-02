@@ -12,6 +12,7 @@ hp <- R6Class(
     es = NULL,
     design = NULL,
     parallel = FALSE,
+    cores = NULL,
     ns = c(),
     n_prior = NULL,
     n_MC = NULL,
@@ -31,6 +32,7 @@ hp <- R6Class(
 
     initialize = function(
       parallel = FALSE,
+      cores = NULL,
       ns = c(),
       n_MC = 100,
       alpha = 0.05,
@@ -175,6 +177,7 @@ hp <- R6Class(
         assurance_level_props <- NULL
 
       self$parallel <- parallel
+      self$cores <- cores
       self$ns <- sort(ns)
       self$n_prior <- n_prior
       self$n_MC <- n_MC
@@ -250,9 +253,12 @@ hp <- R6Class(
       else {
         es <- private$draw_prior_es()
         if (self$parallel) {
-          if (is.null(cores)) cores <- detectCores()
-          self$output <- mclapply(self$ns, private$generate_hybrid_power, es=es)
+          if (is.null(cores)) cl <- parallel::makeCluster(detectCores()-1)
+          else cl <- parallel::makeCluster(cores)
+          doParallel::registerDoParallel(cl)
+          self$output <- parallel::parLapply(cl, self$ns, fun=private$generate_hybrid_power, es=es)
           private$melt_output()
+          stopCluster(cl)
         }
         else {
           res <- list()

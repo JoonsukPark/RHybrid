@@ -81,7 +81,7 @@
 # # This would take some time to run (adjust n_prior or n_MC to reduce running time)
 #
 # x_both_unequal_variance <- hp_ttest$new(
-#   parallel=F,
+#   parallel=T,
 #   ns = seq(10, 50, 10),
 #   n_prior=100,
 #   n_MC=100,
@@ -132,7 +132,6 @@
 #
 # # This should generate an error because the effect size is not provided
 # x_hybrid$classical_power()
-#
 # x_hybrid$hybrid_power()
 # x_hybrid$assurance()
 # x_hybrid$power_quantiles()
@@ -140,6 +139,7 @@
 #
 # # Now it should be OK
 # x_hybrid <- hp_oneway_anova$new(
+#   parallel=T,
 #   ns = seq(10, 90, 10),
 #   mu = c(2, 2.2),
 #   prior_mu = c(2, 2.5),
@@ -160,6 +160,7 @@
 #
 # # Welch ANOVA example
 # x_hybrid_unequal_variances <- hp_oneway_anova$new(
+#   parallel=T,
 #   ns = seq(10, 90, 10),
 #   mu = c(2, 2.2),
 #   prior_mu = c(2, 2.5),

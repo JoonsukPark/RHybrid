@@ -13,6 +13,7 @@
 # # Bayesian-classical hybrid power
 # set.seed(SEED)
 # x_hybrid <- hp_ttest$new(
+#   parallel=T,
 #   ns = seq(10, 90, 10),
 #   design = 'two.sample',
 #   n_prior = 1000,
@@ -28,6 +29,7 @@
 # # Both can be calculated using a single instance
 # set.seed(SEED)
 # x_both <- hp_ttest$new(
+#   parallel=T,
 #   ns = seq(10, 90, 10),
 #   d = 0.5,
 #   design = 'two.sample',
@@ -56,6 +58,7 @@
 #
 # set.seed(SEED)
 # x_hybrid <- hp_sign$new(
+#   parallel=T,
 #   ns = seq(50, 150, 10),
 #   p_0 = 0.5,
 #   prior = 'uniform',
@@ -67,9 +70,9 @@
 # x_hybrid$assurance()
 #
 # # Case 3: Welch ANOVA example
-#
 # set.seed(SEED)
 # x_classical_welch <- hp_oneway_anova$new(
+#   parallel=T,
 #   ns = seq(40, 120, 20),
 #   mu = c(2, 2.5),
 #   sigma = c(1, 1.1),
@@ -80,14 +83,15 @@
 #
 # set.seed(SEED)
 # x_hybrid_welch <- hp_oneway_anova$new(
+#   parallel=T,
 #   ns = seq(40, 120, 20),
 #   prior_mu = c(2, 2.5),
 #   prior_sigma = c(.1, .2),
 #   sigma = c(1, 1.1),
 #   design = 'fe',
 #   prior = 'normal',
-#   n_prior = 1000,
-#   n_MC = 1000
+#   n_prior = 10,
+#   n_MC = 10
 # )
 # x_hybrid_welch$hybrid_power()
 # x_hybrid_welch$assurance()

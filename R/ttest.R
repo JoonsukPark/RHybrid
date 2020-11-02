@@ -110,9 +110,12 @@ hp_ttest <- R6Class(
         }
         else {
           if (self$parallel) {
-            library(parallel)
-            if (is.null(cores)) cores <- detectCores()
-            return(unlist(mclapply(n, private$mc_ttest)))
+            if (is.null(cores)) cl <- parallel::makeCluster(parallel::detectCores()-1)
+            else cl <- parallel::makeCluster(cores)
+            doParallel::registerDoParallel(cl)
+            res <- unlist(parallel::parLapply(cl, n, fun=private$mc_ttest))
+            parallel::stopCluster(cl)
+            return(res)
           }
           else {
             return(unlist(lapply(n, private$mc_ttest)))
@@ -148,16 +151,12 @@ hp_ttest <- R6Class(
       return(mean(unlist(lapply(1:self$n_MC, private$sim_ttest, d=d, n=n))))
     },
 
-    generate_hybrid_power = function(n, es) {
+    generate_hybrid_power = function(es, n) {
       if (length(self$sigma) == 1 | (length(self$sigma) == 2 & self$sigma[1] == self$sigma[2])) {
-        return(
-          sapply(es, FUN=self$classical_power, n=n)
-        )
+        return(sapply(es, FUN=self$classical_power, n=n))
       }
       else {
-        return(
-          sapply(es, FUN=private$mc_ttest, n=n)
-        )
+          return(sapply(es, FUN=private$mc_ttest, n=n))
       }
     }
   )

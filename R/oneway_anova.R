@@ -14,6 +14,7 @@ hp_oneway_anova <- R6Class(
 
     initialize = function(
       parallel = FALSE,
+      cores=NULL,
       ns=c(),
       n_prior=10,
       n_MC=10,
@@ -42,7 +43,8 @@ hp_oneway_anova <- R6Class(
         else sigma <- rep(sigma, length(mu))
       }
       super$initialize(
-        parallel = FALSE,
+        cores=cores,
+        parallel = parallel,
         ns=ns,
         n_prior=n_prior,
         n_MC=n_MC,
@@ -173,7 +175,19 @@ hp_oneway_anova <- R6Class(
           return(private$compute_f_prob(f2, ncp, df1, df2))
         }
         else {
-          return(sapply(n, private$simulate_welch, mu=mu))
+          if (self$parallel) {
+            if (self$parallel) {
+              if (is.null(self$cores)) cl <- parallel::makeCluster(parallel::detectCores()-1)
+              else cl <- parallel::makeCluster(self$cores)
+              doParallel::registerDoParallel(cl)
+              res <- unlist(parallel::parLapply(cl, n, fun=private$simulate_welch, mu=mu))
+              parallel::stopCluster(cl)
+              return(res)
+            }
+          }
+          else {
+            return(sapply(n, private$simulate_welch, mu=mu))
+          }
         }
       }
     }
