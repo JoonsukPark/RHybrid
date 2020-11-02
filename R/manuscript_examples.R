@@ -72,7 +72,6 @@
 # # Case 3: Welch ANOVA example
 # set.seed(SEED)
 # x_classical_welch <- hp_oneway_anova$new(
-#   parallel=T,
 #   ns = seq(40, 120, 20),
 #   mu = c(2, 2.5, 2.2),
 #   sigma = c(1, 1.1, 1.2),
@@ -85,7 +84,7 @@
 # x_hybrid_welch <- hp_oneway_anova$new(
 #   parallel=T,
 #   ns = seq(40, 120, 20),
-#   prior_mu = c(2, 2.5, 2.2),
+#   prior_mu = c(2.0, 2.5, 2.2),
 #   prior_sigma = c(.1, .2, .15),
 #   sigma = c(1.0, 1.1, 1.2),
 #   design = 'fe',
