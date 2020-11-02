@@ -190,6 +190,32 @@ hp_oneway_anova <- R6Class(
           }
         }
       }
+    },
+
+    hybrid_power = function(cores=NULL) {
+      if (is.null(self$prior)) {
+        stop('Specify a prior first')
+      }
+      else {
+        if (self$parallel) {
+          if (is.null(self$cores)) cl <- parallel::makeCluster(parallel::detectCores()-1)
+          else cl <- parallel::makeCluster(self$cores)
+          doParallel::registerDoParallel(cl)
+        }
+        else cl <- NULL
+        es <- private$draw_prior_es()
+        res <- list()
+        for (i in 1:length(self$ns)) {
+          res[[i]] <- private$generate_hybrid_power(self$ns[i], es=es, cl=cl)
+        }
+        if (self$parallel) parallel::stopCluster(cl)
+        self$output <- res
+        private$melt_output()
+        cat('\nExample output:\n\n')
+        print(head(self$output))
+        cat('\n...\n')
+        cat('\nFor the complete list of power values, access $output!\n')
+      }
     }
   ),
 
@@ -255,15 +281,12 @@ hp_oneway_anova <- R6Class(
       return(means)
     },
 
-    generate_hybrid_power = function(n, es) {
-      return(
-        apply(
-          es,
-          1,
-          FUN=self$classical_power,
-          n=n
-        )
-      )
+    generate_hybrid_power = function(n, es, cl = NULL) {
+      if (self$parallel) {
+        temp <- parallel::parRapply(cl=cl, es, FUN=self$classical_power, n=n)
+        return(temp)
+      }
+      else return(apply(es, 1, FUN=self$classical_power, n=n))
     }
   )
 )

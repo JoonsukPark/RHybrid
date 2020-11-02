@@ -253,7 +253,7 @@ hp <- R6Class(
       else {
         es <- private$draw_prior_es()
         if (self$parallel) {
-          if (is.null(cores)) cl <- parallel::makeCluster(detectCores()-1)
+          if (is.null(cores)) cl <- parallel::makeCluster(parallel::detectCores()-1)
           else cl <- parallel::makeCluster(cores)
           doParallel::registerDoParallel(cl)
           self$output <- parallel::parLapply(cl, self$ns, fun=private$generate_hybrid_power, es=es)

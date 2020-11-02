@@ -74,8 +74,8 @@
 # x_classical_welch <- hp_oneway_anova$new(
 #   parallel=T,
 #   ns = seq(40, 120, 20),
-#   mu = c(2, 2.5),
-#   sigma = c(1, 1.1),
+#   mu = c(2, 2.5, 2.2),
+#   sigma = c(1, 1.1, 1.2),
 #   design = 'fe',
 #   n_MC=1000
 # )
@@ -85,13 +85,19 @@
 # x_hybrid_welch <- hp_oneway_anova$new(
 #   parallel=T,
 #   ns = seq(40, 120, 20),
-#   prior_mu = c(2, 2.5),
-#   prior_sigma = c(.1, .2),
-#   sigma = c(1, 1.1),
+#   prior_mu = c(2, 2.5, 2.2),
+#   prior_sigma = c(.1, .2, .15),
+#   sigma = c(1.0, 1.1, 1.2),
 #   design = 'fe',
 #   prior = 'normal',
-#   n_prior = 10,
-#   n_MC = 10
+#   n_prior = 1000,
+#   n_MC = 1000
 # )
+# begin <- Sys.time()
 # x_hybrid_welch$hybrid_power()
+# end <- Sys.time()
+# print(end-begin)
 # x_hybrid_welch$assurance()
+# pdf('fig3.pdf', width=6, height=4)
+# x_hybrid_welch$boxplot()
+# dev.off()
