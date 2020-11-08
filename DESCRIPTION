@@ -1,11 +1,15 @@
 Package: hybridpower
 Type: Package
-Title: Bayesian-Classical Hybrid Power analysis
+Title: Rhybrid
 Version: 0.1.0
-Author: Joonsuk Park [aut], Jolynn Pek [aut]
-Maintainer: Joonsuk Park <vergilius85@gmail.com>
+Authors@R: 
+  c(person(given = "Joonsuk", family = "Park", role = c("aut", "cre"),
+           email = "vergilius85@gmail.com"),
+    person(given = "Jolynn", family = "Pek", role = "aut",
+           email = "pek.5@osu.edu"))
 Description: 
     Computes Bayesian-Classical and classical power values.
+Depends: R (>= 3.5.0)
 Imports:
     parallel,
     dplyr,
