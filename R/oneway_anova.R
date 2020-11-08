@@ -13,7 +13,7 @@ hp_oneway_anova <- R6Class(
     epsilon = 1,
 
     initialize = function(
-      parallel = FALSE,
+      parallel = TRUE,
       cores=NULL,
       ns=c(),
       n_prior=10,
@@ -29,7 +29,7 @@ hp_oneway_anova <- R6Class(
       design = 'fe',
       rho = 0,
       epsilon = 1,
-      alt = 'two.sided',
+      alt = 'one.sided',
       quantiles = NULL,
       assurance_level_props=NULL
     ) {
