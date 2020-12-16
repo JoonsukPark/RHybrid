@@ -11,6 +11,7 @@ hp_oneway_anova <- R6Class(
     design = NULL,
     rho = 0,
     epsilon = 1,
+    seed=NULL,
 
     initialize = function(
       parallel = TRUE,
@@ -31,8 +32,11 @@ hp_oneway_anova <- R6Class(
       epsilon = 1,
       alt = 'one.sided',
       quantiles = NULL,
-      assurance_level_props=NULL
+      assurance_level_props=NULL,
+      seed=NULL
     ) {
+      if (is.numeric(seed)) self$seed <- seed
+      else stop('Invalid random seed!')
       if (!(is.null(prior))) {
         if (!(prior %in% c('normal', 'uniform')))
           stop('Invalid prior')
@@ -179,6 +183,7 @@ hp_oneway_anova <- R6Class(
             if (self$parallel) {
               if (is.null(self$cores)) cl <- parallel::makeCluster(parallel::detectCores()-1)
               else cl <- parallel::makeCluster(self$cores)
+              parallel::clusterSetRNGStream(cl, iseed = self$seed)
               doParallel::registerDoParallel(cl)
               res <- unlist(parallel::parLapply(cl, n, fun=private$simulate_welch, mu=mu))
               parallel::stopCluster(cl)
