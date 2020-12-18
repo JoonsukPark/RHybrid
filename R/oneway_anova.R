@@ -35,7 +35,10 @@ hp_oneway_anova <- R6Class(
       assurance_level_props=NULL,
       seed=NULL
     ) {
-      if (is.numeric(seed)) self$seed <- seed
+      if (is.numeric(seed)) {
+        set.seed(seed)
+        self$seed <- seed
+      }
       else if (!is.null(seed)) stop('Invalid random seed!')
       if (!(is.null(prior))) {
         if (!(prior %in% c('normal', 'uniform')))
