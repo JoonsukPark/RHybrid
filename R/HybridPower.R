@@ -40,7 +40,7 @@ hp <- R6Class(
       quantiles = c(0, .25, .5, .75, 1),
       assurance_level_props = NULL,
       prior = NULL,
-      n_prior = 100,
+      n_prior = 1000,
       prior_mu = NULL,
       prior_sigma = NULL,
       prior_lower = NULL,
@@ -282,6 +282,21 @@ hp <- R6Class(
       p <- p + xlab('Sample Size') + ylab('Power') + ggtitle('Distributions of Power')
       p <- p + stat_summary(fun=mean, geom='point', shape=5, size=4)
       p
+    },
+
+    summary = function() {
+      if (is.null(self$output)) stop('Run hybrid_power() first')
+      res <- self$output %>%
+        group_by(n) %>%
+        summarize(assurance=mean(power),
+                  sd=sd(power),
+                  min=min(power),
+                  Q1=quantile(power, .25),
+                  median=quantile(power, .5),
+                  Q3=quantile(power, .75),
+                  max=max(power)
+        )
+        return(res)
     }
   ),
 
