@@ -288,7 +288,7 @@ hp <- R6Class(
       if (is.null(self$output)) stop('Run hybrid_power() first')
       res <- self$output %>%
         group_by(n) %>%
-        summarize(assurance=mean(power),
+        summarize(mean=mean(power),
                   sd=sd(power),
                   min=min(power),
                   Q1=quantile(power, .25),

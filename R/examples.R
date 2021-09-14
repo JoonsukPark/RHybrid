@@ -7,8 +7,8 @@
 # # Classical power analysis
 # x_classical <- hp_ttest$new(
 #   ns = seq(10, 90, 10),
-#   d = 0.5,
-#   alpha=.01
+#   design = 'two.sample',
+#   d = .5
 # )
 # x_classical$classical_power()
 #
@@ -22,33 +22,18 @@
 # # Now the default quantiles are those from Tukey (0, .25, .5, .75, 1)
 # x_hybrid <- hp_ttest$new(
 #   ns = seq(10, 90, 10),
-#   n_prior=1000,
+#   design = 'two.sample',
+#   n_prior = 1000,
 #   prior = 'normal',
-#   prior_mu = 0.3,
-#   prior_sigma = 0.1,
-#   alpha=0.1,
-#   assurance_level_props = c(.5, .8)
+#   prior_mu = .5,
+#   prior_sigma = .44
 # )
 #
 # # This should generate an error because you haven't specified the 'd' here.
 # x_hybrid$classical_power()
 #
-# # Now it will be OK
-# x_hybrid <- hp_ttest$new(
-#   ns = seq(10, 90, 10),
-#   n_prior=10,
-#   n_MC=10,
-#   prior = 'normal',
-#   prior_mu = 0.1,
-#   prior_sigma = 0.1,
-#   alpha=0.05,
-#   d=0.1,
-#   sigma=.1,
-#   assurance_level_props = c(.5, .8)
-# )
-# x_hybrid$classical_power()
-#
 # # This saves the generated hybrid power values at self$output (in this case, x_hybrid$output)
+# set.seed(1234)
 # x_hybrid$hybrid_power()
 #
 # # You can also do this because hybrid_power() saves the power values as well as returning them as output values
@@ -76,6 +61,24 @@
 # x_hybrid$assurance()
 # x_hybrid$power_quantiles()
 # x_hybrid$assurance_level()
+# Both
+# x_both <- hp_ttest$new(
+#   ns = seq(10, 90, 10),
+#   d = .5,
+#   design = 'two.sample',
+#   n_prior = 1000,
+#   prior = 'normal',
+#   prior_mu = .5,
+#   prior_sigma = .44,
+#   assurance_level_props = c(.5, .8),
+#   quantiles = c(0, .2, .5, .7, 1)
+# )
+#
+# set.seed(1234)
+# x_both$assurance()
+# x_both$power_quantiles()
+# x_both$boxplot()
+# x_both$assurance_level()
 #
 # # Unequal variances case (Welch t-test)
 # # This would take some time to run (adjust n_prior or n_MC to reduce running time)
@@ -159,25 +162,28 @@
 # x_hybrid$assurance_level()
 #
 # # Welch ANOVA example
-# x_hybrid_unequal_variances <- hp_oneway_anova$new(
-#   parallel=T,
-#   ns = seq(10, 90, 10),
-#   mu = c(2, 2.2),
-#   prior_mu = c(2, 2.5),
-#   prior_sigma = c(0, .2),
-#   sigma = c(1, 1.1),
-#   design='fe',
-#   prior = 'normal',
-#   n_prior = 100,
-#   quantiles = c(.2, .5, .8),
-#   assurance_level_props = c(.5, .8)
+# x_classical_welch <- hp_oneway_anova$new(
+#   ns = seq(40, 120, 20),
+#   mu = c(2.2, 2.5, 2.0),
+#   sigma = c(1.0, 1.1, 1.2),
+#   design = 'fe',
+#   n_MC = 1000,
+#   seed = 1234
 # )
-#
-# x_hybrid_unequal_variances$classical_power()
-# x_hybrid_unequal_variances$hybrid_power()
-# x_hybrid_unequal_variances$power_quantiles()
-# x_hybrid_unequal_variances$boxplot()
-# x_hybrid_unequal_variances$assurance_level()
+# x_classical_welch$classical_power()
+# x_hybrid_welch <- hp_oneway_anova$new(
+#   ns = seq(40, 120, 20),
+#   prior_mu = c(2.2, 2.5, 2.0),
+#   prior_sigma = c(.1, .2, .15),
+#   sigma = c(1.0, 1.1, 1.2),
+#   design = 'fe',
+#   prior = 'normal',
+#   n_prior = 1000,
+#   n_MC = 1000,
+#   seed = 1234
+# )
+# x_hybrid_welch$hybrid_power()
+# x_hybrid_welch$assurance()
 #
 # #####################################
 # # Example 3: bivariate correlation ##
@@ -248,26 +254,21 @@
 # x_classical <- hp_sign$new(
 #   ns = seq(10, 90, 10),
 #   p_0 = 0.5,
-#   p_1 = 0.6
+#   p_1 = 0.3
 # )
 # x_classical$classical_power()
 #
 # x_hybrid <- hp_sign$new(
-#   prior='uniform',
-#   prior_lower = 0.1,
-#   prior_upper = 0.3,
-#   parallel = T,
-#   ns = seq(10, 90, 10),
-#   n_prior=1000,
-#   n_MC = 100,
-#   p_0 = 0.5,
-#   p_1 = 0.6,
-#   MC=F,
-#   quantiles = c(.2, .5, .8),
+#   ns = seq(50, 150, 10),
+#   p_0 = .5,
+#   prior = 'uniform',
+#   prior_lower = .15,
+#   prior_upper = .45,
+#   n_prior = 5000,
 #   assurance_level_props = c(.5, .8)
 # )
 #
-# x_hybrid$classical_power()
+# set.seed(1234)
 # x_hybrid$hybrid_power()
 # x_hybrid$assurance()
 # x_hybrid$boxplot()
