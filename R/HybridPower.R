@@ -28,7 +28,7 @@ hp <- R6Class(
     prior_a = NULL,
     prior_b = NULL,
     quantiles = c(0, .25, .5, .75, 1),
-    assurance_level_props = NULL,
+    assurance_level_lb = NULL,
 
     initialize = function(
       parallel = FALSE,
@@ -38,7 +38,7 @@ hp <- R6Class(
       alpha = 0.05,
       alt = 'two.sided',
       quantiles = c(0, .25, .5, .75, 1),
-      assurance_level_props = NULL,
+      assurance_level_lb = NULL,
       prior = NULL,
       n_prior = 1000,
       prior_mu = NULL,
@@ -161,20 +161,20 @@ hp <- R6Class(
       else
         quantiles <- c(0, .25, .5, .75, 1)
 
-      if (!(is.null(assurance_level_props))) {
-        if (length(assurance_level_props) == 1) {
-          if (!(is.numeric(assurance_level_props) & assurance_level_props <= 1 & assurance_level_props >= 0))
+      if (!(is.null(assurance_level_lb))) {
+        if (length(assurance_level_lb) == 1) {
+          if (!(is.numeric(assurance_level_lb) & assurance_level_lb <= 1 & assurance_level_lb >= 0))
             stop('Invalid proportions for assurance levels')
         }
         else {
-          for (i in 1:length(assurance_level_props)) {
-            if (!(is.numeric(assurance_level_props[i]) & (assurance_level_props[i] <= 1) & (assurance_level_props[i] >= 0)))
+          for (i in 1:length(assurance_level_lb)) {
+            if (!(is.numeric(assurance_level_lb[i]) & (assurance_level_lb[i] <= 1) & (assurance_level_lb[i] >= 0)))
               stop('Invalid proportions for assurance levels')
           }
         }
       }
       else
-        assurance_level_props <- NULL
+        assurance_level_lb <- NULL
 
       self$parallel <- parallel
       self$cores <- cores
@@ -185,7 +185,7 @@ hp <- R6Class(
       self$alpha <- alpha
       self$alt <- alt
       self$quantiles <- quantiles
-      self$assurance_level_props <- assurance_level_props
+      self$assurance_level_lb <- assurance_level_lb
     },
 
     print = function(){
@@ -197,7 +197,7 @@ hp <- R6Class(
       cat('Type of prior: ', self$prior, '\n')
       cat('Alternative Hypothesis: ', self$alt, '\n')
       cat('Level of significance: ', self$alpha, '\n')
-      cat('Proportions for assurance levels: ', self$assurance_level_props, '\n')
+      cat('Proportions for assurance levels: ', self$assurance_level_lb, '\n')
     },
 
     assurance = function() {
@@ -226,7 +226,7 @@ hp <- R6Class(
       return(res)
     },
 
-    assurance_level = function(props=self$assurance_level_props) {
+    assurance_level = function(props=self$assurance_level_lb) {
       if (is.null(self$output))
         stop('Run hybrid_power() first')
       if (is.null(props))

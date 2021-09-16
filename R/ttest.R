@@ -25,7 +25,7 @@ hp_ttest <- R6Class(
       design = 'one.sample',
       sigma = 1,
       quantiles = NULL,
-      assurance_level_props=NULL
+      assurance_level_lb=NULL
     ) {
       if (!(is.null(prior))) {
         if (!(prior %in% c('normal', 'uniform')))
@@ -44,7 +44,7 @@ hp_ttest <- R6Class(
         alpha=alpha,
         alt=alt,
         quantiles=quantiles,
-        assurance_level_props=assurance_level_props
+        assurance_level_lb=assurance_level_lb
       )
       self$design <- design
       if (!(is.null(d))) {

@@ -21,7 +21,7 @@ hp_cor <- R6Class(
       prior_sigma = NULL,
       rho = NULL,
       quantiles=NULL,
-      assurance_level_props=NULL
+      assurance_level_lb=NULL
     ) {
       if (!(is.null(prior))) {
         if (prior == 'truncnorm' | prior == 'uniform') {
@@ -70,7 +70,7 @@ hp_cor <- R6Class(
         alpha = alpha,
         alt = alt,
         quantiles = quantiles,
-        assurance_level_props=assurance_level_props
+        assurance_level_lb=assurance_level_lb
       )
       if (!(is.null(rho))) {
         if (!(is.numeric(rho)))

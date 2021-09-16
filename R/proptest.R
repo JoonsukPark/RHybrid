@@ -53,7 +53,7 @@ hp_prop <- R6Class(
       prior_pi_1_sigma = NULL,
       prior_pi_2_mu = NULL,
       prior_pi_2_sigma = NULL,
-      assurance_level_props = NULL,
+      assurance_level_lb = NULL,
       quantiles = NULL
     ) {
       if (!(is.null(prior))) {
@@ -69,7 +69,7 @@ hp_prop <- R6Class(
         alpha=alpha,
         alt=alt,
         quantiles=quantiles,
-        assurance_level_props=assurance_level_props
+        assurance_level_lb=assurance_level_lb
       )
       self$prior <- prior
       self$design <- design

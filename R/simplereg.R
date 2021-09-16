@@ -20,7 +20,7 @@ hp_slr <- R6Class(
       prior_mu = NULL,
       prior_sigma = NULL,
       quantiles = NULL,
-      assurance_level_props=NULL
+      assurance_level_lb=NULL
     ) {
       if (!(is.null(prior))) {
         if (!(prior %in% c('beta', 'uniform', 'truncnorm'))) {
@@ -66,7 +66,7 @@ hp_slr <- R6Class(
         alpha=alpha,
         alt='one.sided',
         quantiles=quantiles,
-        assurance_level_props=assurance_level_props
+        assurance_level_lb=assurance_level_lb
       )
       if (!is.null(r2)) {
         if (!(is.numeric(r2)) | r2 > 1 | r2 < 0)

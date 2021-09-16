@@ -32,7 +32,7 @@ hp_oneway_anova <- R6Class(
       epsilon = 1,
       alt = 'one.sided',
       quantiles = NULL,
-      assurance_level_props=NULL,
+      assurance_level_lb=NULL,
       seed=NULL
     ) {
       if (is.numeric(seed)) {
@@ -63,7 +63,7 @@ hp_oneway_anova <- R6Class(
         alpha=alpha,
         alt=alt,
         quantiles=quantiles,
-        assurance_level_props=assurance_level_props
+        assurance_level_lb=assurance_level_lb
       )
       if (!is.null(prior)) {
         if (!(prior %in% c('normal','uniform')))

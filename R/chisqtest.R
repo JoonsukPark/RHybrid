@@ -31,7 +31,7 @@ hp_chisq <- R6Class(
       prior_a = NULL,
       prior_b = NULL,
       quantiles = NULL,
-      assurance_level_props = NULL
+      assurance_level_lb = NULL
     ) {
       if (!(is.null(prior))) {
         if (!(prior %in% c('dirichlet', 'beta', 'uniform', 'truncnorm'))) {
@@ -79,7 +79,7 @@ hp_chisq <- R6Class(
         alpha=alpha,
         alt=alt,
         quantiles=quantiles,
-        assurance_level_props=assurance_level_props
+        assurance_level_lb=assurance_level_lb
       )
       if (sum(p_0) != 1)
         stop('p_0 must sum to 1')

@@ -33,7 +33,7 @@ hp_sign <- R6Class(
       prior_a = NULL,
       prior_b = NULL,
       quantiles = NULL,
-      assurance_level_props = NULL
+      assurance_level_lb = NULL
     ) {
       if (!(is.null(prior))) {
         if (!(prior %in% c('truncnorm','beta','uniform'))) {
@@ -79,7 +79,7 @@ hp_sign <- R6Class(
         alpha=alpha,
         alt=alt,
         quantiles=quantiles,
-        assurance_level_props=assurance_level_props
+        assurance_level_lb=assurance_level_lb
       )
       if (!(is.numeric(p_0)) | p_0 > 1 | p_0 < 0)
         stop('Invalid p_0')
