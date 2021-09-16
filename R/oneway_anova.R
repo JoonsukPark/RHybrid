@@ -279,7 +279,7 @@ hp_oneway_anova <- R6Class(
         }
       }
       else if (self$prior == 'uniform') {
-        for (i in 1:length(self$k)) {
+        for (i in 1:self$k) {
           means <- cbind(
             means,
             rnorm(self$n_prior, self$prior_lower[i], self$prior_upper[i])
